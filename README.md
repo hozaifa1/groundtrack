@@ -1,66 +1,101 @@
-# AI Builders Challenge with IBM Bob — Project Scaffold
+# Groundtrack
 
-## 🚀 Overview
-An intelligent agentic solution built with **IBM Bob** for the **AI Builders Challenge with IBM Bob (2026)**.
+**IBM Bob writes the spacecraft anomaly detector. A fixed benchmark decides whether it was any good.**
 
-## 🎯 Problem Statement
-Brief description of the challenge being addressed under the chosen theme:
-- **Track**: [Space Exploration AI / Future of Work AI]
-- **Core Challenge**: High cognitive load, fragmented data pipelines, and mission-critical decision latency.
+Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-## 💡 Solution & Technical Architecture
-- **Agentic SDLC & Orchestration**: Built and orchestrated using **IBM Bob**.
-- **Model Layer**: Powered by IBM Granite SLMs / watsonx.ai foundation models.
-- **Document & Data Ingestion**: Leveraging IBM Docling and structured vector pipelines.
-- **Workflow & Automation**: Modular agent design with verification loops.
+> **Status: in active development (Day 1 of 9).** The benchmark, the scorer, and the Bob skill are in place. The engine itself is authored by Bob starting Day 2 — see [`engine/README.md`](engine/README.md) for why it is empty right now.
 
-## 🛠️ Project Structure
-```
-ibm-bob-challenge/
-├── .bob/                  # IBM Bob mode rules (Agent, Plan, Ask)
-├── docs/                  # Architecture & design documentation
-├── src/
-│   ├── agents/            # Specialized agent personas and execution flows
-│   ├── api/               # API endpoints & interface contracts
-│   ├── core/              # Core business logic and engine algorithms
-│   ├── integrations/      # IBM watsonx / Docling / Granite connectors
-│   └── main.py            # Main application entry point
-├── tests/                 # Unit & integration test suites
-├── AGENTS.md              # IBM Bob project instructions & conventions
-├── COMPETITION.md         # Competition brief, deadlines, and requirements
-├── requirements.txt       # Python dependencies
-└── README.md              # Project documentation
-```
+---
 
-## ⚙️ Getting Started
+## The problem
 
-### 1. Prerequisites
-- Python 3.10+
-- IBM Bob IDE / Bob Shell access
-- (Optional) IBM watsonx API Key
+A small mission-operations team — a university CubeSat program, or an early NewSpace startup where "ops" is three or four rotating grad students — inherits an anomaly-response runbook written once at commissioning. It maps telemetry signatures to corrective actions.
 
-### 2. Installation
+It is almost never revalidated against real flight data as new fault modes appear, because doing that means sitting down, replaying months of telemetry against the current rules, finding the misses, and patching the logic. That is unglamorous maintenance work, and a four-person team with theses and a semester will keep deferring it.
+
+Then an anomaly hits, and the person on console needs an answer that is instant, cited, and *already validated* — not a chatbot improvising over numbers it has never been checked against.
+
+## The approach
+
+Groundtrack splits the problem in two, and the split is the point.
+
+**The ruler is written outside the loop. The engine is Bob's.**
+
+- [`tools/score.py`](tools/score.py) — the metric, the data split, the failure reporting — is authored outside the forge loop, committed before the engine exists, and Bob may never touch it. What matters is not who typed it but that the agent under test cannot reach its own grader.
+- **IBM Bob authors 100% of [`engine/`](engine/)** — including the initial baseline — running headlessly through `bob run` inside a scored keep/discard loop. Bob proposes one minimal edit, the scorer re-runs, and the harness commits the change or reverts it.
+- **IBM Granite** turns each detection into a plain-language operations brief, generated offline via Ollama and committed to the repo.
+
+Because the thing that grades the agent sits outside the agent's reach, the central claim is checkable rather than asserted:
+
 ```bash
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
+git log --author=bob --oneline -- engine/
+```
+
+Only Bob's commits. Remove Bob, and there is no detector.
+
+## Why it matters
+
+Anomaly detectors for spacecraft telemetry are not scarce — the research literature is full of them. What is scarce is a detector a four-person team can *own*: one small enough to read, cheap enough to re-tune when a new fault mode appears, and honest enough to show its working.
+
+Groundtrack is an argument that an agentic SDLC tool can maintain that kind of artifact continuously, against a real metric, with every decision written down — instead of a model that was accurate once, in a paper, in 2018.
+
+## IBM Bob usage
+
+Bob is a **development-time** tool here and is never in a runtime request path — it has no runtime API, and pretending otherwise would be architecturally false.
+
+| Where | What Bob does |
+|---|---|
+| [`.bob/skills/anomaly-forge-engineer/`](.bob/skills/anomaly-forge-engineer/SKILL.md) | A real, reusable Bob skill defining the engineer role, its guardrails, and its JSON report format |
+| `tools/forge_loop.py` | Invokes `bob run --format json --max-cost 1 --max-turns 12` per iteration, parses the result, and gates it on the held-out metric |
+| `engine/` | Every file, authored and re-authored by Bob |
+| `results/ledger.jsonl` | Every iteration recorded: `task_id`, cost, turns, score before/after, kept or reverted |
+
+Bobcoin spend is capped per call and tracked per iteration. Failed experiments are logged as failures, never quietly dropped.
+
+## The benchmark
+
+**Telemanom** — real labelled spacecraft telemetry from NASA's Soil Moisture Active Passive satellite (SMAP) and the Mars Science Laboratory rover (MSL). Apache-2.0.
+
+- 82 channels · 105 expert-labelled anomaly sequences · 62 point, 43 contextual
+- Split deterministically by channel-id hash into **56 dev / 26 holdout** channels (**70 / 35** labelled windows)
+- Bob sees failures from `dev` only. `holdout` decides whether an iteration is kept.
+
+Source: [khundman/telemanom](https://github.com/khundman/telemanom) · Hundman et al., *Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding*, KDD 2018.
+
+The metric is window-overlap F1: a labelled anomaly counts as caught if any prediction overlaps it. Operators care whether the event was caught, not whether every sample inside it was flagged.
+
+## Quick start
+
+```bash
+python -m venv .venv && ./.venv/Scripts/activate    # Windows
 pip install -r requirements.txt
+
+python tools/fetch_data.py        # ~9 MB, no API key, no account
+python tools/test_score.py        # validate the ruler
+python tools/score.py             # grade the current engine
 ```
 
-### 3. Running the Prototype
+## Verify this yourself
+
+Every claim here is meant to be checked, not believed. None of these commands spend Bobcoins.
+
 ```bash
-python src/main.py
+git log --author=bob --oneline -- engine/   # every engine commit is Bob's
+cat results/ledger.jsonl                     # every iteration, cost, and outcome
+python tools/score.py                        # reproduce the headline metric
+python tools/fetch_data.py --check           # confirm the benchmark is intact
 ```
 
-### 4. Running Tests
-```bash
-pytest tests/
-```
+## Honest limitations
 
-## 👥 Real-World Impact
-- Measurable efficiency gains and rapid automated reasoning.
-- Enterprise-grade governance, auditability, and safety.
+Stated here rather than left for a reader to find:
 
-## 🏆 Submission Deliverables
-- **Demo Video**: [Link to 3-minute demo video]
-- **Project URL**: [BeMyApp Project Link]
+- **The runbook text is illustrative**, templated from Telemanom's public channel metadata. It is not certified NASA operational doctrine.
+- **The held-out split is small** — 35 labelled windows. F1 on that many events is noisy, and a large swing between iterations should be read with suspicion.
+- **Granite briefs are pre-generated offline**, not produced live per request. The generation script ships, so anyone with Ollama can regenerate and diff them.
+- **The beneficiary is not yet validated.** Small-team mission ops is a plausible user, not a confirmed one. Outreach is in progress and this line will be updated honestly either way.
+
+## License
+
+Apache-2.0 — matching the benchmark it is built on.

@@ -34,3 +34,12 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
+
+# IBM Bob / competition credentials (NEVER COMMIT)
+competition.json
+*apikey*.json
+*api-key*.json
+.bob/settings/auth-secrets.json
+
+# Karpathy autoresearch clone (reference only, requires NVIDIA GPU)
+autoresearch/

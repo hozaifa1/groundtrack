@@ -1,11 +1,18 @@
-# Core Framework
-pydantic>=2.7.0
-python-dotenv>=1.0.0
-rich>=13.7.0
+# Groundtrack — runtime and tooling dependencies
+# CPU only. No GPU, no Docker, no paid services.
 
-# IBM & AI Integration
-# ibm-watsonx-ai>=1.0.0
-# docling>=1.0.0
+# Data + metric
+numpy>=1.26
+pandas>=2.2
+pyarrow>=15.0          # reads the parquet telemetry benchmark
+scikit-learn>=1.4
 
-# Testing & Dev
-pytest>=8.0.0
+# Reporting
+matplotlib>=3.8         # renders results/progress.png from results/ledger.jsonl
+
+# IBM Bob drives the forge loop through its own CLI (`bob run`), installed
+# separately via npm as `bobshell`. It is intentionally NOT a Python dependency —
+# Bob is a development-time tool and is never imported at runtime.
+
+# IBM Granite runs locally through Ollama for offline brief generation.
+# Install Ollama, then: ollama pull granite4:3b
