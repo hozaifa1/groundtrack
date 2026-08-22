@@ -1,0 +1,36 @@
+# Dependencies & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+node_modules/
+
+# Secrets & Environment variables
+.env
+.env.local
+*.pem
+*.key
+
+# Build & Dist
+dist/
+build/
+*.egg-info/
+
+# Agent configuration / Memory rules (NEVER COMMIT)
+CLAUDE.md
+MEMORY.md
+.agents/
+skills-lock.json
+*.log
+.system_generated/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/

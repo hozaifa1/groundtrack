@@ -1,0 +1,11 @@
+# Core Framework
+pydantic>=2.7.0
+python-dotenv>=1.0.0
+rich>=13.7.0
+
+# IBM & AI Integration
+# ibm-watsonx-ai>=1.0.0
+# docling>=1.0.0
+
+# Testing & Dev
+pytest>=8.0.0
