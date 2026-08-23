@@ -164,6 +164,16 @@ def load_detections(limit: int | None = None) -> list[dict]:
         values = df["value"].to_numpy(dtype=float)
         cmd_cols = [c for c in df.columns if c.startswith("cmd_")]
 
+        # Deviation is measured the same way the detector measures it: residual
+        # against a rolling median, scaled by the MAD of that residual. Comparing
+        # against a *global* median instead produces numbers like "2666 sigma" on
+        # channels that spend most of their life pinned at one value - technically
+        # derived, operationally meaningless, and Granite would repeat it verbatim.
+        rolling = df["value"].rolling(window=100, min_periods=1).median().to_numpy()
+        residual = values - rolling
+        mad = float(np.median(np.abs(residual))) * 1.4826
+        dev_scale = mad if mad > 1e-9 else (float(residual.std()) or 1.0)
+
         for raw_start, raw_end in detect(df):
             start, end = int(raw_start), int(raw_end)
             window = values[start : end + 1]
@@ -173,8 +183,6 @@ def load_detections(limit: int | None = None) -> list[dict]:
             if baseline.size == 0:
                 baseline = window
 
-            mad = float(np.median(np.abs(baseline - np.median(baseline)))) * 1.4826
-            scale = mad if mad > 1e-9 else (float(baseline.std()) or 1.0)
             active = [
                 c
                 for c in cmd_cols
@@ -202,7 +210,9 @@ def load_detections(limit: int | None = None) -> list[dict]:
                     "b_std": float(baseline.std()),
                     "b_min": float(baseline.min()),
                     "b_max": float(baseline.max()),
-                    "z_peak": float(np.abs(window - np.median(baseline)).max() / scale),
+                    "z_peak": float(
+                        np.abs(residual[start : end + 1]).max() / dev_scale
+                    ),
                     "cmds": ", ".join(active[:8]) if active else "none",
                 }
             )
