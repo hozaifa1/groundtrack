@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 2 of 9).** Bob has authored the iteration-0 baseline engine. It scores **holdout F1 0.266** (precision 0.163, recall 0.714) across 26 held-out channels, and crashes on none of the 82. Precision is the weak half and is what the forge loop will attack. The improvement loop itself is not wired up yet.
+> **Status: in active development (Day 2 of 9).** Bob has authored the iteration-0 baseline engine. It scores **holdout F1 0.266** (precision 0.163, recall 0.714) across 26 held-out channels, and crashes on none of the 82. Precision is the weak half and is what the forge loop will attack. IBM Granite runs locally and writes operator briefs that regenerate byte-for-byte. The improvement loop itself is not wired up yet.
 
 ---
 
@@ -24,7 +24,7 @@ Groundtrack splits the problem in two, and the split is the point.
 
 - [`tools/score.py`](tools/score.py) — the metric, the data split, the failure reporting — is authored outside the forge loop, committed before the engine exists, and Bob may never touch it. What matters is not who typed it but that the agent under test cannot reach its own grader.
 - **IBM Bob authors 100% of [`engine/`](engine/)** — including the initial baseline — running headlessly through `bob run` inside a scored keep/discard loop. Bob proposes one minimal edit, the scorer re-runs, and the harness commits the change or reverts it.
-- **IBM Granite** turns each detection into a plain-language operations brief, generated offline via Ollama and committed to the repo.
+- **IBM Granite** (`granite4:3b`, run locally through Ollama) turns a detection into a plain-language operations brief, generated offline and committed to the repo. Decoding is pinned so the briefs regenerate byte-for-byte — `tools/make_briefs.py --check` re-asks Granite and diffs the answer against what is committed.
 
 Because the thing that grades the agent sits outside the agent's reach, the central claim is checkable rather than asserted:
 
@@ -96,6 +96,10 @@ python tools/fetch_data.py --check                  # confirm the benchmark is i
 python tools/make_briefs.py --check                 # regenerate a Granite brief, diff it
 ```
 
+`--check` takes about three minutes: it warms the model, re-runs the engine, asks
+Granite for the brief again, and diffs it against the committed file. It is meant to
+print `OK ... reproduces exactly`. If it prints a diff, something really did change.
+
 Raw `bob run` transcripts are committed under `results/bob_runs/`, so the `task_id`
 and coin cost in the ledger can be checked against Bob's own output rather than taken
 on trust.
@@ -106,7 +110,8 @@ Stated here rather than left for a reader to find:
 
 - **The runbook text is illustrative**, templated from Telemanom's public channel metadata. It is not certified NASA operational doctrine.
 - **The held-out split is small** — 35 labelled windows. F1 on that many events is noisy, and a large swing between iterations should be read with suspicion.
-- **Granite briefs are pre-generated offline**, not produced live per request. The generation script ships, so anyone with Ollama can regenerate and diff them.
+- **Granite briefs are pre-generated offline**, not produced live per request. The generation script ships, so anyone with Ollama can regenerate and diff them — `--check` does exactly that and is expected to reproduce the committed text exactly.
+- **Only some detections are briefed.** The baseline emits 466 windows and most are false alarms; briefing all of them is hours of CPU inference for output nobody would read. The README will state the final count and the basis for it.
 - **The beneficiary is not yet validated.** Small-team mission ops is a plausible user, not a confirmed one. Outreach is in progress and this line will be updated honestly either way.
 
 ## License
