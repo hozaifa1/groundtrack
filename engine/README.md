@@ -11,12 +11,17 @@ That constraint is what makes this project's central claim checkable rather than
 asserted:
 
 ```bash
-git log --author=bob --oneline -- engine/
+git log --format='%an' -- 'engine/*.py' | sort -u    # -> IBM Bob, and nothing else
 ```
 
-If that command shows only Bob-authored commits, then removing Bob removes the
-engine. If a human had bootstrapped a baseline here "just to get started", the
-claim would be quietly false — so we don't.
+If that command names only Bob, then removing Bob removes the engine. If a human had
+bootstrapped a baseline here "just to get started", the claim would be quietly false —
+so we don't.
+
+Note the exact scope of the claim, because we would rather state it than be caught on
+it: **this file** — `engine/README.md` — is human-written documentation, and it shows up
+under `git log -- engine/`. Every `.py` file in this directory is Bob's, which is why the
+command above filters to `engine/*.py`. Prose about the engine is ours; the engine is not.
 
 ## The interface Bob implements
 

@@ -43,3 +43,6 @@ competition.json
 
 # Karpathy autoresearch clone (reference only, requires NVIDIA GPU)
 autoresearch/
+
+# Bob run stderr is empty on success; keep the JSON transcripts, drop the noise
+results/bob_runs/*.err

@@ -1,84 +1,74 @@
-You are the sole author of the anomaly-detection engine in this repository. Read
-`AGENTS.md` and `.bob/skills/anomaly-forge-engineer/SKILL.md` first — they define the
-rules you operate under.
+Write the initial baseline for a spacecraft anomaly detector. `engine/` has no code
+yet; you are its sole author. Everything you need is below — do not read other files,
+do not list directories, do not explore. Write the two files, verify once, report.
 
-`engine/` currently contains no code at all. Your job this run is **iteration 0**:
-create the initial baseline engine from scratch. No human has written, or will ever
-write, any detector code here.
-
-## Create exactly two files
-
-### `engine/detect.py`
+## 1. `engine/detect.py`
 
 ```python
 def detect(df) -> list[tuple[int, int]]:
-    """Flag anomalous index ranges in a single telemetry channel."""
 ```
 
-`df` is a pandas DataFrame for ONE channel with columns:
-  `timestep` (int), `value` (float, the monitored signal), `cmd_0 .. cmd_N`
-  (one-hot spacecraft command context; N varies by channel).
+`df` is a pandas DataFrame for ONE telemetry channel, 1000-9000 rows, columns:
+`timestep` (int), `value` (float, the monitored signal), and `cmd_0`..`cmd_N`
+(one-hot command context, N varies). Return inclusive `(start, end)` index ranges,
+ascending and non-overlapping.
 
-Return inclusive `(start, end)` index ranges in ascending order, non-overlapping.
-Returning `[]` is legal and scores zero.
+Baseline algorithm — implement exactly this, nothing fancier:
 
-### `engine/runbook.py`
+1. Robust baseline: rolling median of `value` over a window of ~100 samples,
+   `min_periods=1`, centered=False.
+2. Residual: `value - rolling median`.
+3. Robust scale: median absolute deviation of the residual times 1.4826. If it is
+   ~0 (constant channel), fall back to the standard deviation; if that is also ~0,
+   return `[]`.
+4. Flag samples where `|residual| / scale` exceeds ~4.
+5. Merge flagged samples separated by fewer than ~50 samples into one window.
+6. Drop windows shorter than ~5 samples as noise.
+
+Put the constants in named module-level variables so later iterations can tune them.
+
+## 2. `engine/runbook.py`
 
 ```python
 def match(df, window: tuple[int, int]) -> dict:
-    """Map a detected anomaly to an operator-facing runbook entry."""
 ```
 
-Return a dict with at least: `signature` (short slug, e.g. `"level_shift"`),
-`title`, `severity`, and `action` (what a mission-ops engineer should do next).
-Classify from the telemetry inside the window only. Keep the text generic
-flight-rule style; it is illustrative operator guidance, not certified doctrine.
-
-## What the baseline should be
-
-Something simple, explicit, and defensible — a rolling-statistics detector is the
-expected starting point. Smooth the signal, measure how far each sample sits from its
-local expectation in robust units, threshold it, and merge nearby exceedances into
-windows. Do not attempt anything sophisticated. This is the floor that later
-iterations improve on, and a small readable baseline is worth far more here than a
-clever one that nobody can build on.
-
-Write real docstrings explaining *why* a rule exists. A mission-ops engineer must be
-able to read `detect.py` and see why it fired.
+Return `{"signature": str, "title": str, "severity": str, "action": str}`.
+Classify from telemetry inside the window only, using a few explicit rules —
+e.g. a sustained mean shift is `"level_shift"`, a brief excursion that returns is
+`"transient_spike"`, a jump in local variance is `"noise_burst"`, otherwise
+`"unclassified"`. Severity from how far the window sits from the channel baseline.
+`action` is one or two sentences of generic flight-rule guidance.
 
 ## Hard rules
 
-- Standard library, `numpy`, `pandas` only. No new dependencies.
-- Never read `data/telemanom/labeled_anomalies.csv`. Detection runs on telemetry alone.
-- No per-channel hardcoding. Never reference a channel id.
-- Deterministic. No unseeded randomness.
-- Never modify `tools/score.py`, `data/`, or `results/`.
-- The engine must not crash on any channel. Guard against short series, constant
-  signals, and zero variance.
+- stdlib, `numpy`, `pandas` only. No new imports beyond those.
+- Never read `data/telemanom/labeled_anomalies.csv`. Telemetry only.
+- No per-channel hardcoding. Never mention a channel id.
+- Deterministic. No randomness.
+- Never touch `tools/`, `data/`, or `results/`.
+- Must not crash on short, constant, or zero-variance channels.
+- Docstrings explain *why* a rule exists. A mission-ops engineer reads this to see
+  why it fired.
 
-## Verify before you finish
+## Verify (once)
 
 ```bash
 .venv/Scripts/python.exe tools/score.py
 ```
 
-That takes 30-60 seconds and reads all 81 channels — this is normal. It must print a
-GATE METRIC line, not an error. If it errors, fix `engine/detect.py` and re-run once.
+Takes 30-60s — that is normal, not a hang. It must print a `GATE METRIC` line. If it
+errors, fix it and re-run once.
 
 ## Report
 
-Finish with a JSON object on its own:
+End with only this JSON:
 
 ```json
-{
-  "target_failure": "no engine existed",
-  "hypothesis": "<the detection idea in one sentence>",
-  "change": "<what you created>",
-  "files_touched": ["engine/detect.py", "engine/runbook.py"],
-  "f1_before": 0.0,
-  "f1_after": <the GATE METRIC the scorer actually printed>,
-  "generalises": "<dev vs holdout F1 as reported by the scorer>"
-}
+{"target_failure":"no engine existed","hypothesis":"...","change":"...",
+ "files_touched":["engine/detect.py","engine/runbook.py"],
+ "f1_before":0.0,"f1_after":<the GATE METRIC actually printed>,
+ "generalises":"dev F1 ... / holdout F1 ..."}
 ```
 
-Report the number the scorer actually printed. Never invent one.
+Report the number the scorer printed. Never invent one.
