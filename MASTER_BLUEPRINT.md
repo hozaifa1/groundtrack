@@ -64,13 +64,21 @@ bob run --format json --max-cost 1 --max-turns 1 --trust --accept-license \
  "duration_ms":38463,"session_costs":0.264168,"max_cost":1,"tool_calls":0},"last_message":"OK"}
 ```
 
-**Budget reality — this is a hard design constraint:**
+**Budget reality — measured on Day 2, not estimated:**
 
-- A *trivial* call with **zero tool calls** cost **0.264** and took **38 seconds**.
-- Total balance: **40 Bobcoins**.
-- A real engine-editing iteration (~12 turns, file edits, running the scorer) will cost far more and will likely hit a `--max-cost 1` cap.
-- **Realistic ceiling: 30–40 substantive `bob run` calls for the entire project**, including development, debugging, and demo capture. Not hundreds.
-- Wall-clock matters too: a 20-iteration loop is hours, not minutes.
+| Call | Tool calls | Duration | Cost | Produced |
+|---|---|---|---|---|
+| Day 1 smoke test | 0 | 38s | 0.264 | `OK` |
+| Iteration 0, attempt 1 (`--max-cost 1`) | 4 | 37s | **1.092** | **nothing — hit the cap** |
+| Iteration 0, attempt 2 (`--max-cost 5`) | 3 | 128s | **1.381** | `detect.py` + `runbook.py`, holdout F1 0.266 |
+
+Three things this measurement changed:
+
+1. **`--max-cost 1` is actively harmful.** Attempt 1 spent a full coin on orientation reads and a directory listing, hit the cap, and wrote no code. A capped call still costs full price, so a cap set below the true cost of an iteration converts coins into nothing.
+2. **Prompt design dominates cost.** Attempt 1 told Bob to go read `AGENTS.md` and the skill file and orient itself. Attempt 2 inlined every fact it needed and explicitly forbade exploratory reads — and finished the whole baseline in *fewer* tool calls for a comparable price. The forge loop must inject the failure report inline, never point Bob at files to fetch.
+3. **The 16–20 iteration plan does not fit.** At a realistic 2–3 coins for an iteration that reads a report, edits, and re-scores, 16–20 iterations is 32–60 coins against a 40-coin balance with 2.47 already spent.
+
+**Realistic ceiling: 12 loop iterations at `--max-cost 3`, plus reserve.** Wall clock matters too — each call is 40–130s and each scoring pass reads 81 parquet files in 30–60s.
 
 Verified `bob run` flags in use: `--format json`, `--mode <custom-slug>`, `--max-cost`, `--max-turns`, `--trust`, `--accept-license`, `--disable-mcp`, `--disable-subagents`, `--team-id`, `--workspace`.
 
@@ -170,13 +178,16 @@ Each iteration:
 
 **Bobcoin allocation (of 40):**
 
-| Purpose | Calls |
-|---|---|
-| Iteration 0 — Bob authors the baseline engine | 2–3 |
-| Skill + custom mode authoring | 3–4 |
-| Forge loop main iterations | 16–20 |
-| Reserve for broken iterations | 4 |
-| **Target total** | **≤30, leaving real margin** |
+Revised on Day 2 against measured cost. Coins, not calls, because calls are not a fixed price.
+
+| Purpose | Coins | Status |
+|---|---|---|
+| Iteration 0 — Bob authors the baseline engine | 2.47 | **spent** (2 calls, one wasted on the cost cap) |
+| Forge loop main iterations (12 at `--max-cost 3`) | ~24 | budgeted |
+| Demo capture and debugging reserve | ~6 | budgeted |
+| **Hard floor — stop here** | **5 remaining** | |
+
+Iterations run in batches of four with the ledger re-read between batches. Twelve queued unattended is how thirty coins disappear with nothing kept.
 
 **Budget kill condition:** if balance drops below 5 coins before 3 kept iterations have landed, stop the loop, ship the ledger as-is, and drop any improvement claim.
 
@@ -205,10 +216,14 @@ Granite work starts Day 2 in parallel, not Day 5 — the feasibility critic flag
 Every claim we make must be checkable. The README carries a section titled "Verify this yourself" containing exactly this:
 
 ```bash
-git log --author=bob --oneline -- engine/     # every engine commit is Bob's
+git log --format='%an' -- 'engine/*.py' | sort -u   # names IBM Bob, nothing else
 cat results/ledger.jsonl                       # every iteration, cost, and outcome
 python tools/score.py                          # reproduce the metric, no Bobcoins needed
 python tools/make_briefs.py --check            # regenerate a Granite brief and diff it
+
+# Note: `engine/README.md` is human-written documentation and does show up under
+# `git log -- engine/`. The claim is about engine/*.py, and it is stated that way
+# in engine/README.md itself rather than left for a judge to catch.
 ```
 
 Plus a Bobcoin budget table with real `task_id`s. This packaging was the element the IBM judge said to steal from the strongest concept — we ship it deliberately.
