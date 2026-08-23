@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 1 of 9).** The benchmark, the scorer, and the Bob skill are in place. The engine itself is authored by Bob starting Day 2 — see [`engine/README.md`](engine/README.md) for why it is empty right now.
+> **Status: in active development (Day 2 of 9).** Bob has authored the iteration-0 baseline engine. It scores **holdout F1 0.266** (precision 0.163, recall 0.714) across 26 held-out channels, and crashes on none of the 82. Precision is the weak half and is what the forge loop will attack. The improvement loop itself is not wired up yet.
 
 ---
 
@@ -29,10 +29,12 @@ Groundtrack splits the problem in two, and the split is the point.
 Because the thing that grades the agent sits outside the agent's reach, the central claim is checkable rather than asserted:
 
 ```bash
-git log --author=bob --oneline -- engine/
+git log --format='%an' -- 'engine/*.py' | sort -u
 ```
 
-Only Bob's commits. Remove Bob, and there is no detector.
+That names `IBM Bob`, and nothing else. Remove Bob, and there is no detector.
+
+(`engine/README.md` is human-written documentation and does appear under `git log -- engine/`. The claim is about the engine, so the command is scoped to `engine/*.py` — [`engine/README.md`](engine/README.md) says so itself rather than leaving it for a reader to catch.)
 
 ## Why it matters
 
@@ -47,11 +49,13 @@ Bob is a **development-time** tool here and is never in a runtime request path �
 | Where | What Bob does |
 |---|---|
 | [`.bob/skills/anomaly-forge-engineer/`](.bob/skills/anomaly-forge-engineer/SKILL.md) | A real, reusable Bob skill defining the engineer role, its guardrails, and its JSON report format |
-| `tools/forge_loop.py` | Invokes `bob run --format json --max-cost 1 --max-turns 12` per iteration, parses the result, and gates it on the held-out metric |
+| `tools/forge_loop.py` | Invokes `bob run --format json --max-cost 3 --max-turns 12` per iteration, parses the result, and gates it on the held-out metric |
 | `engine/` | Every file, authored and re-authored by Bob |
 | `results/ledger.jsonl` | Every iteration recorded: `task_id`, cost, turns, score before/after, kept or reverted |
 
-Bobcoin spend is capped per call and tracked per iteration. Failed experiments are logged as failures, never quietly dropped.
+Bobcoin spend is capped per call and tracked per iteration. Failed experiments are logged as failures, never quietly dropped — the very first ledger entry is a run that hit its cost cap and produced no code at all.
+
+The cap is 3 rather than 1 because of something measured on Day 2: a run that hits `--max-cost` is still billed in full. A cap set below the real cost of an iteration does not save coins, it converts them into nothing.
 
 ## The benchmark
 
@@ -76,16 +80,25 @@ python tools/test_score.py        # validate the ruler
 python tools/score.py             # grade the current engine
 ```
 
+`pandas` must come from the virtualenv. If `python` on your PATH is the system
+interpreter, call the venv one explicitly — `.venv/Scripts/python.exe tools/score.py`
+on Windows — or the scorer will fail on a missing import rather than on the metric.
+
 ## Verify this yourself
 
 Every claim here is meant to be checked, not believed. None of these commands spend Bobcoins.
 
 ```bash
-git log --author=bob --oneline -- engine/   # every engine commit is Bob's
-cat results/ledger.jsonl                     # every iteration, cost, and outcome
-python tools/score.py                        # reproduce the headline metric
-python tools/fetch_data.py --check           # confirm the benchmark is intact
+git log --format='%an' -- 'engine/*.py' | sort -u   # names IBM Bob, nothing else
+cat results/ledger.jsonl                            # every iteration, cost, outcome
+python tools/score.py                               # reproduce the headline metric
+python tools/fetch_data.py --check                  # confirm the benchmark is intact
+python tools/make_briefs.py --check                 # regenerate a Granite brief, diff it
 ```
+
+Raw `bob run` transcripts are committed under `results/bob_runs/`, so the `task_id`
+and coin cost in the ledger can be checked against Bob's own output rather than taken
+on trust.
 
 ## Honest limitations
 
