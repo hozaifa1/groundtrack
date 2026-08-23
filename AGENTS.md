@@ -32,6 +32,21 @@ change it.
 | `data/` | Nobody | Immutable benchmark. Never edit or regenerate. |
 | `results/` | Harness | Append-only ledger. Never hand-edit. |
 
+## Running things on this machine
+
+Dependencies live in the project virtualenv, **not** in the system Python. The bare
+`python` on PATH has no `pandas` and will fail. Always use the venv interpreter:
+
+```bash
+.venv/Scripts/python.exe tools/score.py            # human-readable report
+.venv/Scripts/python.exe tools/score.py --json     # gate metric, machine-readable
+.venv/Scripts/python.exe tools/score.py --failures dev
+```
+
+A full scoring pass reads all 81 telemetry files and takes roughly 30-60 seconds.
+That is expected, not a hang. Run it once, read the result, and act on it — do not
+re-run it speculatively.
+
 ## Constraints
 
 - **Dependencies**: standard library, `numpy`, `pandas` only. Do not add packages.
