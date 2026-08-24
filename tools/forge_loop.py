@@ -379,7 +379,7 @@ def build_prompt(result: dict, steer: str) -> str:
 # --------------------------------------------------------------------------
 
 
-def run_bob(prompt: str, max_cost: float, max_turns: int, tag: str) -> dict:
+def run_bob(prompt: str, max_cost: float, max_turns: int, tag: str, timeout: float) -> dict:
     """Invoke Bob headless and return the parsed JSON result.
 
     The transcript is written to `results/bob_runs/` before anything is parsed, so a
@@ -413,9 +413,28 @@ def run_bob(prompt: str, max_cost: float, max_turns: int, tag: str) -> dict:
         )
 
     started = time.time()
-    proc = subprocess.run(
-        cmd, cwd=REPO_ROOT, capture_output=True, text=True, env=env, shell=False
-    )
+    try:
+        proc = subprocess.run(
+            cmd, cwd=REPO_ROOT, capture_output=True, text=True, env=env, shell=False,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as expired:
+        # A run that will not end is worse than one that fails: killed from outside,
+        # the harness never writes a ledger line and the attempt vanishes from the
+        # record. Own the kill so the attempt is logged even when nothing came back.
+        out = expired.stdout.decode("utf-8", "replace") if expired.stdout else ""
+        err = expired.stderr.decode("utf-8", "replace") if expired.stderr else ""
+        (RUNS_DIR / (tag + ".json")).write_text(out, encoding="utf-8")
+        (RUNS_DIR / (tag + ".err")).write_text(
+            err + "\nharness: killed after {0:.0f}s\n".format(timeout), encoding="utf-8")
+        return {
+            "status": "timeout",
+            "stats": {"task_id": None, "session_costs": None, "tool_calls": None,
+                      "duration_ms": int(timeout * 1000)},
+            "last_message": "Killed by the harness after {0:.0f}s. Any Bobcoins IBM "
+                            "billed for this task are not recoverable from the "
+                            "transcript, so the cost is recorded as unknown.".format(timeout),
+        }
     (RUNS_DIR / (tag + ".json")).write_text(proc.stdout, encoding="utf-8")
     (RUNS_DIR / (tag + ".err")).write_text(proc.stderr, encoding="utf-8")
 
@@ -531,7 +550,24 @@ def ledger_entries() -> list[dict]:
 
 
 def spent_so_far() -> float:
-    return sum(float(e.get("cost") or 0.0) for e in ledger_entries())
+    """Coins the ledger can account for. See `unknown_attempts` for the rest."""
+    return sum(float(e["cost"]) for e in ledger_entries() if e.get("cost") is not None)
+
+
+def unknown_attempts() -> list[dict]:
+    """Attempts whose cost never came back — a timeout, or a kill from outside.
+
+    IBM bills the task whether or not the transcript reaches us, so these are real
+    spend that cannot be measured. They are counted against the budget at their cost
+    cap, which is the most that could have been charged, so the loop stops early
+    rather than late.
+    """
+    return [e for e in ledger_entries() if "cost" in e and e["cost"] is None]
+
+
+def budget_used() -> float:
+    """Conservative spend: everything measured, plus every unknown at its cap."""
+    return spent_so_far() + sum(float(e.get("max_cost") or 0.0) for e in unknown_attempts())
 
 
 def next_iteration_number() -> int:
@@ -581,19 +617,25 @@ def iterate(args, iteration: int, before: dict) -> tuple[dict, dict]:
               "no Bob call made".format(tag))
         return ({"dry_run": True, "iteration": iteration, "f1_before": f1_before}, before)
 
-    remaining = TOTAL_BUDGET - spent_so_far()
+    remaining = TOTAL_BUDGET - budget_used()
     if remaining < args.budget_floor + args.max_cost:
         print("  BUDGET STOP - {0:.2f} coins left, floor is {1}".format(
             remaining, args.budget_floor))
         return ({"iteration": iteration, "outcome": "budget_stop",
                  "remaining_coins": round(remaining, 4)}, before)
 
-    payload = run_bob(prompt, args.max_cost, args.max_turns, tag)
+    payload = run_bob(prompt, args.max_cost, args.max_turns, tag, args.timeout)
     stats = payload.get("stats") or {}
-    cost = float(stats.get("session_costs") or 0.0)
+    reported_cost = stats.get("session_costs")
+    # `None`, not 0.0, when the transcript never arrived. A timeout that records a
+    # zero cost quietly under-reports the budget, which is the one number in this
+    # project nobody may guess at.
+    cost = float(reported_cost) if reported_cost is not None else None
     status = payload.get("status", "unknown")
-    print("  bob status        : {0}  cost={1:.4f}  tool_calls={2}  {3}ms".format(
-        status, cost, stats.get("tool_calls"), stats.get("duration_ms")))
+    print("  bob status        : {0}  cost={1}  tool_calls={2}  {3}ms".format(
+        status,
+        "unknown" if cost is None else "{0:.4f}".format(cost),
+        stats.get("tool_calls"), stats.get("duration_ms")))
 
     entry = {
         "iteration": iteration,
@@ -608,6 +650,18 @@ def iterate(args, iteration: int, before: dict) -> tuple[dict, dict]:
         "bob_status": status,
         "f1_before": f1_before,
     }
+
+    if status == "timeout":
+        # Whatever Bob had half-written when it was killed is not a result.
+        revert_engine()
+        entry.update({
+            "f1_after": f1_before,
+            "kept": False,
+            "outcome": "timeout",
+            "note": payload.get("last_message"),
+        })
+        append_ledger(entry)
+        return entry, before
 
     engine_paths, stray = classify(touched_paths(), ignore=harness_outputs(tag))
 
@@ -707,11 +761,45 @@ def main() -> int:
     ap.add_argument("--max-turns", type=int, default=12)
     ap.add_argument("--budget-floor", type=float, default=5.0,
                     help="stop before the remaining balance would fall below this")
+    ap.add_argument("--timeout", type=float, default=900.0,
+                    help="wall-clock seconds before the harness kills a bob run itself. "
+                         "A run killed from outside leaves no ledger line at all.")
+    ap.add_argument("--record-aborted", metavar="REASON",
+                    help="append a ledger line for a run that was killed from outside "
+                         "this harness, then exit. Cost is recorded as unknown, because "
+                         "IBM billed it and the transcript never arrived to say how much.")
     ap.add_argument("--steer", default=None,
                     help="override the 'where to aim this iteration' section of the prompt")
     ap.add_argument("--dry-run", action="store_true",
                     help="score, build and save the prompt, then exit without calling Bob")
     args = ap.parse_args()
+
+    if args.record_aborted:
+        # The ledger is written only by this harness, never by hand. An attempt that
+        # was killed from outside still happened and still cost coins, so it gets a
+        # line here rather than being edited into the file afterwards.
+        entry = {
+            "iteration": next_iteration_number(),
+            "attempt": 1,
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "task_id": None,
+            "cost": None,
+            "max_cost": args.max_cost,
+            "max_turns": args.max_turns,
+            "tool_calls": None,
+            "duration_ms": None,
+            "bob_status": "aborted",
+            "f1_before": None,
+            "f1_after": None,
+            "kept": False,
+            "outcome": "aborted",
+            "note": args.record_aborted,
+        }
+        append_ledger(entry)
+        print("recorded aborted attempt as iteration {0}".format(entry["iteration"]))
+        print("budget used (unknowns counted at their cap): {0:.4f} of {1}".format(
+            budget_used(), TOTAL_BUDGET))
+        return 0
 
     if not VENV_PY.exists():
         sys.exit("virtualenv interpreter not found at " + str(VENV_PY))
@@ -726,7 +814,7 @@ def main() -> int:
             + "The keep/revert gate reverts engine/ wholesale; uncommitted work would be lost."
         )
 
-    print("Bobcoins spent so far: {0:.4f} of {1}".format(spent_so_far(), TOTAL_BUDGET))
+    print("Bobcoins accounted for: {0:.4f} of {1} (conservative, unknowns at cap: {2:.4f})".format(spent_so_far(), TOTAL_BUDGET, budget_used()))
     print("Scoring current engine (30-60s)...")
     current = score_now()
     if current.get("error"):
@@ -739,7 +827,7 @@ def main() -> int:
             break
 
     print("\nfinal holdout F1: {0:.6f}".format(current["f1"]))
-    print("Bobcoins spent: {0:.4f} of {1}".format(spent_so_far(), TOTAL_BUDGET))
+    print("Bobcoins accounted for: {0:.4f} of {1} (conservative, unknowns at cap: {2:.4f})".format(spent_so_far(), TOTAL_BUDGET, budget_used()))
     return 0
 
 
