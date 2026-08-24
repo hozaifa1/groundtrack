@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 3 of 9).** Bob has authored the iteration-0 baseline engine. It scores **holdout F1 0.266** (precision 0.163, recall 0.714) across 26 held-out channels, and crashes on none of the 82. The forge loop is now wired end-to-end and has run four live iterations. **All four were reverted** — the held-out metric has not moved off the baseline yet. IBM Granite runs locally and writes operator briefs that regenerate byte-for-byte.
+> **Status: in active development (Day 3 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 82. Five forge iterations were reverted by the gate before one was kept. IBM Granite runs locally and writes operator briefs that regenerate byte-for-byte.
 
 ---
 
@@ -24,6 +24,7 @@ Groundtrack splits the problem in two, and the split is the point.
 
 - [`tools/score.py`](tools/score.py) — the metric, the data split, the failure reporting — is authored outside the forge loop, committed before the engine exists, and Bob may never touch it. What matters is not who typed it but that the agent under test cannot reach its own grader.
 - **IBM Bob authors 100% of [`engine/`](engine/)** — including the initial baseline — running headlessly through `bob run` inside a scored keep/discard loop. Bob proposes one minimal edit, the scorer re-runs, and the harness commits the change or reverts it.
+- **Where the direction comes from is stated, not implied.** Bob proposed and wrote iterations 1–5 unaided; all five were reverted. The kept iteration implemented a configuration found by [`tools/sweep.py`](tools/sweep.py), an offline dev-split search that is committed, reproducible, and spends no Bobcoins. Bob wrote the code and the reasoning; the search chose the two numbers. That division of labour is written into [`engine/detect.py`](engine/detect.py) itself, in the comment above the constants, and worked through in [`docs/parameter-search.md`](docs/parameter-search.md).
 - **IBM Granite** (`granite4:3b`, run locally through Ollama) turns a detection into a plain-language operations brief, generated offline and committed to the repo. Decoding is pinned so the briefs regenerate byte-for-byte — `tools/make_briefs.py --check` re-asks Granite and diffs the answer against what is committed.
 
 Because the thing that grades the agent sits outside the agent's reach, the central claim is checkable rather than asserted:
@@ -57,7 +58,7 @@ Bobcoin spend is capped per call and tracked per iteration. Failed experiments a
 
 ## What the loop has actually done
 
-Four live iterations, four reverts. The gate has never yet said yes, and the ledger says so:
+Six live iterations. Five reverted, one kept, and the ledger carries all of them:
 
 | # | Bob's change | dev F1 | holdout F1 | Verdict |
 |---|---|---|---|---|
@@ -65,18 +66,31 @@ Four live iterations, four reverts. The gate has never yet said yes, and the led
 | 2 | detection threshold 4.0σ → 4.5σ | 0.235 → 0.250 | 0.266 → 0.255 | reverted |
 | 4 | *(never scored — see below)* | — | — | discarded |
 | 5 | global MAD → rolling local MAD | 0.235 → 0.148 | 0.266 → 0.249 | reverted |
+| 6 | threshold → 6.0σ **and** merge gap → 150 | 0.235 → 0.608 | 0.266 → **0.623** | **kept** |
 
-Iteration 1 is the one worth looking at. Bob's edit **improved the score on the data Bob
-could see** and hurt the held-out score, which is exactly the failure the split exists to
+Iteration 1 is still the one worth looking at. Bob's edit **improved the score on the data
+Bob could see** and hurt the held-out score — exactly the failure the split exists to
 catch — and Bob reported it accurately without being asked to: *"recall fell too much on
 holdout channels whose true positives happen to be short windows not visible in the dev
 failure report."*
 
 Iterations 1 and 2 fail the same way, trading recall for precision roughly one for one.
 Iteration 5 fails the opposite way: a locally-estimated scale collapses in flat stretches,
-so recall rose on both splits while false alarms more than doubled. Between them they
-bracket the problem, and each iteration's prompt now carries the previous verdicts so the
-loop does not pay to walk in a circle.
+so recall rose on both splits while false alarms more than doubled.
+
+Iteration 6 is why they failed. The two constants **interact**, and one-at-a-time search
+cannot find the pair: 6σ alone loses recall because a real anomaly crosses the threshold
+in several short bursts, and a 150-sample merge gap is what reconstitutes those bursts
+into the single event they physically are. Together they take holdout precision from
+0.163 to 0.731 — 128 false positives down to 7 — while flagging the same 14% of each
+channel as before. Fewer, better-consolidated windows, not bigger ones.
+
+That pair was found by [`tools/sweep.py`](tools/sweep.py) on the dev split, not by Bob,
+and [`docs/parameter-search.md`](docs/parameter-search.md) says so at length — including
+the part where the search first found a way to score **dev F1 0.807** by emitting one
+1668-sample window per channel covering 39% of the telemetry. The metric is gameable, the
+scorer is fixed and cannot be patched to close it, and walking through that hole was
+declined in writing rather than quietly taken.
 
 Iteration 4 was not Bob's failure. The harness compared the working tree only *after* the
 call, mistook files the operator had saved during it for Bob's work, reverted an engine
@@ -157,7 +171,9 @@ Stated here rather than left for a reader to find:
 - **Granite briefs are pre-generated offline**, not produced live per request. The generation script ships, so anyone with Ollama can regenerate and diff them — `--check` does exactly that and is expected to reproduce the committed text exactly.
 - **Only some detections are briefed.** The baseline emits 466 windows and most are false alarms; briefing all of them is hours of CPU inference for output nobody would read. The README will state the final count and the basis for it.
 - **The beneficiary is not yet validated.** Small-team mission ops is a plausible user, not a confirmed one. Outreach is drafted in [`docs/outreach/`](docs/outreach/) and not yet sent; that directory also states in advance what may be claimed if nobody replies, which is nothing.
-- **The loop has not yet improved anything.** Four iterations, four reverts, holdout F1 still at the baseline 0.266. If it stays there, this ships as "Bob authored and validated this engine, and the gate rejected every change it proposed" — which is still true and still git-provable — rather than as an improvement curve that did not happen.
+- **Bob did not find the winning configuration; an offline search did.** Bob proposed and wrote iterations 1–5 unaided and the gate reverted all five. The kept iteration implemented two numbers chosen by [`tools/sweep.py`](tools/sweep.py). Bob wrote every line of the engine and the reasoning in it, and the held-out gate still decided — but "the agent improved its own score by itself" is not a claim this project makes.
+- **The metric has a hole in it, and it is documented.** Window-overlap F1 rewards emitting one enormous window per channel. `tools/score.py` is fixed and is not being patched to close it, so the search carries an operational constraint instead and rejects degenerate configurations. See [`docs/parameter-search.md`](docs/parameter-search.md).
+- **Recall went down.** 0.714 → 0.543 on holdout. The F1 gain is entirely precision. A mission-ops team that would rather chase false alarms than miss an event should tune this differently, and the search harness ships so they can.
 
 ## License
 
