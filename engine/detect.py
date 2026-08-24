@@ -26,14 +26,35 @@ ROLLING_WINDOW: int = 100
 MAD_CONSISTENCY_FACTOR: float = 1.4826
 
 # Detection threshold in robust-sigma units.
-# 4 σ keeps the false-alarm rate low on channels that stay near-Gaussian while
-# still catching genuine level shifts and spikes.
-DETECTION_THRESHOLD: float = 4.0
+# At 4 σ the detector fires on ordinary variation, generating hundreds of false
+# alarms (268 on dev) against a small number of true positives (45).  Raising
+# the threshold to 6 σ eliminates most of those false alarms, but a real anomaly
+# is often only briefly extreme: several short bursts cross 6 σ with quieter
+# intervals between them.  Moving the threshold alone therefore loses recall
+# nearly one-for-one with precision — the fragments are each too short to survive
+# MIN_WINDOW_LEN and they are not yet merged because they are separated by more
+# than the old MERGE_GAP.  DETECTION_THRESHOLD and MERGE_GAP must be changed
+# together; see the companion note on MERGE_GAP below.
+# Values selected by an offline grid search over 960 configurations on the dev
+# split (tools/sweep.py); held-out channels were not a selection input.
+DETECTION_THRESHOLD: float = 6.0
 
 # Maximum gap (samples) allowed between two flagged regions before they are
-# merged into one window.  50 samples bridges short un-flagged notches that are
-# artefacts of the rolling baseline rather than true anomaly boundaries.
-MERGE_GAP: int = 50
+# merged into one window.
+#
+# Why 150, not 50: at 6 σ a genuine anomaly produces several separated bursts
+# above the threshold with quiet intervals that can span ~100 samples.  A merge
+# gap of 50 discards each fragment as an isolated short window; 150 reconstitutes
+# the separated bursts into the single event they physically are.  The two
+# constants are one change: 6 σ + 150-sample merge is the pair the offline search
+# validated; neither value is effective alone.
+#
+# Why not higher: merging across very long gaps collapses every channel into one
+# enormous window that trivially overlaps any labelled anomaly while flagging
+# ~40 % of the channel — an alarm that tells an operator nothing.  150 is
+# deliberately well below that regime; median flagged window length stays in the
+# low hundreds of samples and total flagged coverage stays near 14 % of a channel.
+MERGE_GAP: int = 150
 
 # Minimum window length (samples) that is reported as a real anomaly.
 # Windows shorter than 5 are almost certainly single-sample noise or sensor
