@@ -680,7 +680,7 @@ def main() -> int:
         sys.exit("virtualenv interpreter not found at " + str(VENV_PY))
     if not args.dry_run:
         # Fail here rather than after a 45-second scoring pass and a built prompt.
-        bob_executable()
+        bob_command()
 
     dirty = [p for p in touched_paths() if not p.startswith("results/")]
     if dirty and not args.dry_run:
