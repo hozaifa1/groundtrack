@@ -194,6 +194,44 @@ def test_bob_is_launchable() -> None:
           "falling back to " + str(cmd) + " caps the prompt at 8191 chars")
 
 
+def test_commit_names_bob_as_author() -> None:
+    """`git log --format='%an' -- 'engine/*.py'` is this project's central claim.
+
+    It holds only if the harness sets the *author* — not just the committer — to IBM
+    Bob on every kept iteration. Verified in a throwaway repo rather than by leaving
+    a probe commit in the real history, and by monkeypatching REPO_ROOT so the very
+    same `commit_engine` runs, not a copy of it.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    sandbox = Path(tempfile.mkdtemp(prefix="forge-commit-test-"))
+    real_root = fl.REPO_ROOT
+    try:
+        subprocess.run(["git", "init", "-q"], cwd=sandbox, check=True)
+        subprocess.run(["git", "config", "user.name", "Some Human"], cwd=sandbox, check=True)
+        subprocess.run(["git", "config", "user.email", "human@example.com"], cwd=sandbox,
+                       check=True)
+        (sandbox / "engine").mkdir()
+        (sandbox / "engine" / "detect.py").write_text("def detect(df):\n    return []\n",
+                                                      encoding="utf-8")
+
+        fl.REPO_ROOT = sandbox
+        sha = fl.commit_engine("Iteration 99: a test commit")
+
+        log = subprocess.run(
+            ["git", "log", "--format=%an|%ae|%cn", "--", "engine/detect.py"],
+            cwd=sandbox, capture_output=True, text=True,
+        ).stdout.strip()
+        check("a commit was produced", bool(sha), sha)
+        check("author is IBM Bob", log.startswith("IBM Bob|bob@ibm.invalid|"), log)
+        check("committer is not the human either", log.endswith("|IBM Bob"), log)
+    finally:
+        fl.REPO_ROOT = real_root
+        shutil.rmtree(sandbox, ignore_errors=True)
+
+
 def test_budget_accounting() -> None:
     """The ledger is the only record of spend, so the arithmetic on it must hold."""
     entries = fl.ledger_entries()
@@ -228,7 +266,8 @@ def main() -> int:
     for test in (test_classify, test_harness_outputs_are_not_blamed_on_bob,
                  test_revert_restores_engine, test_prompt_is_self_contained,
                  test_history_carries_reverted_levers, test_bob_is_launchable,
-                 test_budget_accounting, test_report_extraction):
+                 test_commit_names_bob_as_author, test_budget_accounting,
+                 test_report_extraction):
         print("\n" + test.__name__)
         test()
     print("\n{0} passed, {1} failed".format(PASSED, FAILED))
