@@ -46,3 +46,11 @@ autoresearch/
 
 # Bob run stderr is empty on success; keep the JSON transcripts, drop the noise
 results/bob_runs/*.err
+
+# Local experimentation scaffolding — sweeps, autoresearch loops, their outputs.
+# These run on this machine to find configurations; they are not part of the
+# shipped artifact and are deliberately kept out of the repo.
+local/
+*.sweep.json
+sweep_*.json
+results/sweep_*
