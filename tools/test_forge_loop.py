@@ -55,6 +55,32 @@ def test_classify() -> None:
     check("nothing allowed by accident", len(stray) == 3, str(stray))
 
 
+def test_harness_outputs_are_not_blamed_on_bob() -> None:
+    """The harness writes into `results/` while Bob is running. That is not Bob.
+
+    The first live call flagged its own transcript as a guardrail violation and then
+    `git clean` deleted the file it had just written. The exemption is exactly four
+    named paths, so a genuine Bob write anywhere else under `results/` still trips.
+    """
+    ignore = fl.harness_outputs("iter7")
+    engine, stray = fl.classify([
+        "results/bob_runs/iter7.json",
+        "results/bob_runs/iter7.prompt.md",
+        "results/ledger.jsonl",
+        "engine/detect.py",
+    ], ignore=ignore)
+    check("own transcript is not a violation", stray == [], str(stray))
+    check("engine edit still seen", engine == ["engine/detect.py"])
+
+    _, stray2 = fl.classify([
+        "results/bob_runs/iter3.json",   # a different iteration's transcript
+        "results/briefs/A-5_2757-2807.md",
+    ], ignore=ignore)
+    check("another iteration's transcript is a violation",
+          "results/bob_runs/iter3.json" in stray2)
+    check("brief edit is a violation", "results/briefs/A-5_2757-2807.md" in stray2)
+
+
 def test_revert_restores_engine() -> None:
     """A reverted iteration must leave `engine/` byte-identical.
 
@@ -133,17 +159,21 @@ def test_prompt_is_self_contained() -> None:
 
 
 def test_bob_is_launchable() -> None:
-    """npm installs the CLI as `bob.CMD`, which `subprocess` will not resolve alone.
+    """Both Windows launcher problems, asserted rather than rediscovered.
 
-    A bare "bob" works in every terminal and raises FileNotFoundError from Python,
-    which is exactly the kind of failure that shows up first on the night of a run.
+    A bare "bob" raises FileNotFoundError from Python while working in every
+    terminal. And going through the `.CMD` shim caps the command line at cmd.exe's
+    8191 characters, which this harness's ~12000-character prompt does not fit —
+    the first live call died in 102ms on exactly that.
     """
     import subprocess
 
-    exe = fl.bob_executable()
-    check("bob resolves to a real file", Path(exe).exists(), exe)
-    proc = subprocess.run([exe, "--version"], capture_output=True, text=True)
+    cmd = fl.bob_command()
+    check("launcher resolves to real files", all(Path(p).exists() for p in cmd), str(cmd))
+    proc = subprocess.run(cmd + ["--version"], capture_output=True, text=True)
     check("bob is launchable from subprocess", proc.returncode == 0, proc.stderr[:200])
+    check("launcher bypasses the cmd.exe shim", len(cmd) > 1,
+          "falling back to " + str(cmd) + " caps the prompt at 8191 chars")
 
 
 def test_budget_accounting() -> None:
@@ -177,7 +207,8 @@ def test_report_extraction() -> None:
 
 def main() -> int:
     print("harness tests - no Bobcoins spent")
-    for test in (test_classify, test_revert_restores_engine, test_prompt_is_self_contained,
+    for test in (test_classify, test_harness_outputs_are_not_blamed_on_bob,
+                 test_revert_restores_engine, test_prompt_is_self_contained,
                  test_bob_is_launchable, test_budget_accounting, test_report_extraction):
         print("\n" + test.__name__)
         test()

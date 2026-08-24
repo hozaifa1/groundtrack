@@ -90,18 +90,38 @@ def api_key() -> str:
     return json.loads(path.read_text(encoding="utf-8"))["apikey"]
 
 
-def bob_executable() -> str:
-    """Absolute path to the Bob CLI.
+def bob_command() -> list[str]:
+    """How to launch Bob, as an argv prefix.
 
-    npm installs it on Windows as `bob.CMD`. `subprocess` without a shell resolves
-    only `.exe`, so a bare "bob" raises FileNotFoundError here even though it works
-    in every terminal. `shutil.which` applies PATHEXT and finds the real file, which
-    is better than hardcoding an npm prefix that differs per machine.
+    Two Windows facts, both learned the expensive way:
+
+    * npm installs the CLI as `bob.CMD`. `subprocess` without a shell resolves only
+      `.exe`, so a bare "bob" raises FileNotFoundError from Python while working in
+      every terminal. `shutil.which` applies PATHEXT and finds the real file.
+    * Going *through* that `.CMD` shim means going through `cmd.exe`, whose command
+      line caps at 8191 characters. This harness deliberately inlines the engine
+      source into the prompt, which puts it around 12000 — so the first live call
+      died in 102ms with "The command line is too long" and cost nothing but time.
+      The shim is a three-line wrapper around `node .../bobshell/dist/bob.js`, and
+      calling that script directly raises the ceiling to the 32767 of CreateProcess.
+
+    Falls back to the shim when the script cannot be located, so a differently
+    packaged install still runs — just with the shorter limit.
     """
-    found = shutil.which("bob")
-    if not found:
+    shim = shutil.which("bob")
+    if not shim:
         sys.exit("The `bob` CLI is not on PATH. Install it before running the forge loop.")
-    return found
+    if Path(shim).suffix.lower() in (".cmd", ".bat"):
+        script = Path(shim).parent / "node_modules" / "bobshell" / "dist" / "bob.js"
+        node = shutil.which("node")
+        if script.exists() and node:
+            return [node, str(script)]
+    return [shim]
+
+
+# The prompt has to fit whatever launcher we ended up with, and it is built before
+# we know how big it got. Checked explicitly rather than discovered as a 102ms crash.
+CMD_LINE_LIMIT = 32000
 
 
 # --------------------------------------------------------------------------
@@ -334,8 +354,9 @@ def run_bob(prompt: str, max_cost: float, max_turns: int, tag: str) -> dict:
     env = dict(os.environ)
     env["BOBSHELL_API_KEY"] = api_key()
 
-    cmd = [
-        bob_executable(), "run",
+    launcher = bob_command()
+    cmd = launcher + [
+        "run",
         "--format", "json",
         "--max-cost", str(max_cost),
         "--max-turns", str(max_turns),
@@ -346,6 +367,14 @@ def run_bob(prompt: str, max_cost: float, max_turns: int, tag: str) -> dict:
         "--disable-subagents",
         prompt,
     ]
+    budget = CMD_LINE_LIMIT if len(launcher) > 1 else 8000
+    if sum(len(part) + 1 for part in cmd) > budget:
+        sys.exit(
+            "prompt is {0} chars, which will not fit this launcher's command line "
+            "({1}). Trim the failure digest before spending a coin on a crash.".format(
+                len(prompt), budget)
+        )
+
     started = time.time()
     proc = subprocess.run(
         cmd, cwd=REPO_ROOT, capture_output=True, text=True, env=env, shell=False
@@ -392,10 +421,29 @@ def touched_paths() -> list[str]:
     return paths
 
 
-def classify(paths: list[str]) -> tuple[list[str], list[str]]:
+def harness_outputs(tag: str) -> set[str]:
+    """Files this harness writes itself during an iteration.
+
+    They have to be excluded from the guardrail, or the loop accuses Bob of editing
+    `results/` on every single run — which is exactly what the first live call did,
+    and then `git clean` ate the transcript it had just written. Only these exact
+    paths are exempt: any *other* write under `results/` really would be Bob.
+    """
+    return {
+        "results/ledger.jsonl",
+        "results/bob_runs/" + tag + ".json",
+        "results/bob_runs/" + tag + ".err",
+        "results/bob_runs/" + tag + ".prompt.md",
+    }
+
+
+def classify(paths: list[str], ignore: set[str] | None = None) -> tuple[list[str], list[str]]:
+    ignore = ignore or set()
     engine_paths: list[str] = []
     stray: list[str] = []
     for p in paths:
+        if p in ignore:
+            continue
         if any(p.startswith(prefix) for prefix in ALLOWED_PREFIXES):
             engine_paths.append(p)
         else:
@@ -524,7 +572,7 @@ def iterate(args, iteration: int, before: dict) -> tuple[dict, dict]:
         "f1_before": f1_before,
     }
 
-    engine_paths, stray = classify(touched_paths())
+    engine_paths, stray = classify(touched_paths(), ignore=harness_outputs(tag))
 
     if stray:
         # An edit outside engine/ is not a scoring question, it is an integrity
