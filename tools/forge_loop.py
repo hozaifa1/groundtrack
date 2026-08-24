@@ -247,7 +247,7 @@ The held-out channels are hidden from you by design, so a change that works only
 memorising dev will be reverted. Aim for a rule that is true of telemetry in general.
 
 {steer}
-
+{history}
 ## Dev-split failure report
 
 This is the only failure information you are allowed to see.
@@ -322,6 +322,42 @@ precision without giving back the recall you already have is the work.
 """
 
 
+def attempt_history(limit: int = 8) -> str:
+    """What previous iterations already tried, and what the gate said about it.
+
+    Each `bob run` is a cold start with no memory of the last one. Without this,
+    iteration 2 proposes iteration 1's reverted edit, pays for it, and gets reverted
+    again — the loop burns coins walking in a circle. Reverted attempts are the
+    valuable half of this list: they are the levers already known not to generalise.
+    """
+    rows: list[str] = []
+    for entry in ledger_entries():
+        change = entry.get("bob_report") or entry.get("note") or ""
+        match = re.search(r'"change"\s*:\s*"(.*?)"', change, re.S)
+        if not match:
+            continue
+        verdict = "KEPT" if entry.get("kept") else "REVERTED"
+        rows.append(
+            "  [{0}] {1}\n      holdout F1 {2} -> {3}".format(
+                verdict,
+                match.group(1).strip().replace("\n", " ")[:150],
+                entry.get("f1_before"),
+                entry.get("f1_after"),
+            )
+        )
+    if not rows:
+        return ""
+    body = "\n".join(rows[-limit:])
+    return (
+        "\n## Already tried\n\n"
+        "You have no memory of previous iterations, so here they are. A REVERTED line\n"
+        "is a lever already known not to generalise - do not propose it again, and do\n"
+        "not propose a near-identical variant of it. Pick a different mechanism.\n\n"
+        + body
+        + "\n"
+    )
+
+
 def build_prompt(result: dict, steer: str) -> str:
     dev = result["splits"]["dev"]
     ho = result["splits"]["holdout"]
@@ -331,6 +367,7 @@ def build_prompt(result: dict, steer: str) -> str:
         ho_p=ho["precision"], ho_r=ho["recall"], ho_f1=ho["f1"],
         ho_tp=ho["tp"], ho_fp=ho["fp"], ho_fn=ho["fn"],
         steer=steer.strip(),
+        history=attempt_history(),
         digest=failure_digest(result),
         detect_src=(ENGINE_DIR / "detect.py").read_text(encoding="utf-8").rstrip(),
         venv_py=".venv/Scripts/python.exe",

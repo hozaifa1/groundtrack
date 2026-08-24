@@ -158,6 +158,24 @@ def test_prompt_is_self_contained() -> None:
     check("prompt fits a Windows command line", len(prompt) < 30000, str(len(prompt)))
 
 
+def test_history_carries_reverted_levers() -> None:
+    """Every `bob run` is a cold start. Reverted attempts must be handed forward.
+
+    Otherwise iteration N pays to propose iteration N-1's reverted edit. The history
+    is read from the real ledger, so this also asserts the ledger is still shaped the
+    way the reader expects.
+    """
+    history = fl.attempt_history()
+    kept_or_reverted = [e for e in fl.ledger_entries() if "bob_report" in e]
+    if not kept_or_reverted:
+        check("no history yet, nothing to carry", history == "")
+        return
+    check("history is non-empty", bool(history.strip()))
+    check("verdicts are stated", "REVERTED" in history or "KEPT" in history)
+    check("repeating a lever is forbidden", "do not propose it again" in history)
+    check("history reaches the prompt", "## Already tried" in history)
+
+
 def test_bob_is_launchable() -> None:
     """Both Windows launcher problems, asserted rather than rediscovered.
 
@@ -209,7 +227,8 @@ def main() -> int:
     print("harness tests - no Bobcoins spent")
     for test in (test_classify, test_harness_outputs_are_not_blamed_on_bob,
                  test_revert_restores_engine, test_prompt_is_self_contained,
-                 test_bob_is_launchable, test_budget_accounting, test_report_extraction):
+                 test_history_carries_reverted_levers, test_bob_is_launchable,
+                 test_budget_accounting, test_report_extraction):
         print("\n" + test.__name__)
         test()
     print("\n{0} passed, {1} failed".format(PASSED, FAILED))
