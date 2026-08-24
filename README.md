@@ -102,6 +102,8 @@ Source: [khundman/telemanom](https://github.com/khundman/telemanom) · Hundman e
 
 The metric is window-overlap F1: a labelled anomaly counts as caught if any prediction overlaps it. Operators care whether the event was caught, not whether every sample inside it was flagged.
 
+The paper's own headline is **F₀.₅ 0.71** (precision 87.5%, recall 80.0%). That is a better result than ours, and it is also not the same measurement — different statistic, an LSTM trained per channel, and an evaluation restricted to a window around each labelled anomaly rather than the whole series. [`docs/telemanom-paper-comparison.md`](docs/telemanom-paper-comparison.md) works the comparison through in full, including the parts that do not flatter us. The short version: our **recall is already in their range** (0.714 vs 0.80) with no model and no training, and precision is the entire gap.
+
 ## Quick start
 
 ```bash
