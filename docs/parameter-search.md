@@ -2,14 +2,18 @@
 
 Four forge iterations were reverted and the engine sat at its iteration-0 baseline of
 holdout F1 0.266. Bob gets one configuration per ~1.1 Bobcoins and cannot try a
-thousand. [`tools/sweep.py`](../tools/sweep.py) can, for free, and this is what it found.
+thousand. An offline search on this machine can, for free, and this is what it found.
+
+The search harness itself is local development scaffolding and is not part of this
+repository. What it produced — the configuration, the method, and the results below,
+including the negative ones — is.
 
 **Result: holdout F1 0.266 → 0.623**, from changing two constants.
 
 ## Method
 
 - The sweep reimplements the committed detector and **self-tests against the ruler**
-  before any result is believed: `tools/sweep.py --selftest` runs the committed
+  before any result is believed: the search's self-test runs the committed
   configuration and checks it reproduces `tools/score.py` exactly (tp=45, fp=268, fn=25,
   F1 0.234987). It does.
 - **Configurations are chosen on `dev` and only on `dev`.** Holdout is scored once per
@@ -93,12 +97,23 @@ it was designed for.
 
 A negative result on the paper's own headline component, measured rather than assumed.
 
-## Reproducing this
+## Verifying this
+
+The search ran off-repo, but its *conclusion* is fully checkable from what ships here,
+which is the part that matters:
 
 ```bash
-.venv/Scripts/python.exe tools/sweep.py --selftest
-.venv/Scripts/python.exe tools/sweep.py --stage baseline --top 18
-.venv/Scripts/python.exe tools/sweep.py --stage prune --top 20
+.venv/Scripts/python.exe tools/score.py     # reproduces holdout F1 0.622951
+cat results/ledger.jsonl                    # iteration 6, kept, with its cost and task id
+git show 9cc792e                            # the change itself, authored by IBM Bob
 ```
 
-No Bobcoins, no network, a few minutes of CPU.
+The constants live in [`engine/detect.py`](../engine/detect.py) with Bob's own comment
+recording where they came from.
+
+## What was tried afterwards and did not work
+
+Three mechanisms from the post-2018 literature — EWMA residual smoothing, a trimmed
+scale estimate, and hysteresis thresholding — were implemented and searched the same
+way. The best of them gained **+0.0086 holdout F1**, less than a single one of the 35
+held-out windows. See [`literature-review.md`](literature-review.md).
