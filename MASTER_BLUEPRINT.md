@@ -183,9 +183,23 @@ Revised on Day 2 against measured cost. Coins, not calls, because calls are not 
 | Purpose | Coins | Status |
 |---|---|---|
 | Iteration 0 — Bob authors the baseline engine | 2.47 | **spent** (2 calls, one wasted on the cost cap) |
-| Forge loop main iterations (12 at `--max-cost 3`) | ~24 | budgeted |
+| Day 3 — four live loop iterations, all reverted | 4.48 | **spent** (1.14 of it on a harness bug, not on Bob) |
+| Day 3 — one attempt killed from outside, cost unknown | ≤3.00 | **assumed spent** at its cap |
+| Forge loop main iterations (12 at ~1.14 measured) | ~14 | budgeted |
 | Demo capture and debugging reserve | ~6 | budgeted |
 | **Hard floor — stop here** | **5 remaining** | |
+
+**Revised again on Day 3 against four measured iterations.** A real iteration — read the
+failure report, edit the engine, re-score, report — costs **1.10 to 1.14 coins**, not the
+2–3 the Day 2 estimate assumed. The prompt is fully self-contained, so Bob makes exactly
+three tool calls every time and never explores. Twelve iterations is roughly 14 coins,
+not 24.
+
+The binding constraint is therefore not price, it is waste. Of the 4.48 coins spent on
+Day 3, 1.14 bought nothing because the harness misjudged its own working tree, and a
+further attempt was lost entirely because a shell timeout killed the run from outside
+before any ledger line was written. Both failure modes are now fixed in the harness and
+both are recorded in `results/ledger.jsonl` rather than tidied away.
 
 Iterations run in batches of four with the ledger re-read between batches. Twelve queued unattended is how thirty coins disappear with nothing kept.
 
@@ -201,7 +215,7 @@ Granite work starts Day 2 in parallel, not Day 5 — the feasibility critic flag
 |---|---|
 | **1 (Aug 22)** | Repo scaffold; Telemanom data cached; `tools/score.py` written and tested; `.bob/skills/anomaly-forge-engineer/SKILL.md` drafted; **public GitHub repo created and pushed** |
 | **2 (Aug 23)** | Bob authors iteration-0 baseline engine (first real `bob run` calls); baseline F1 committed. **In parallel:** Ollama installed, `granite4:3b` pulled, first brief generated locally |
-| **3 (Aug 24)** | Forge loop wired end-to-end; 2–3 controlled calls verify JSON parsing, cost caps, and the commit/revert gate. **Cold outreach round 1 sent** |
+| **3 (Aug 24)** | ✅ Forge loop wired end-to-end; four live calls verified JSON parsing, cost caps, the guardrail, and the revert gate. All four reverted — holdout F1 unchanged at 0.266. Outreach **drafted, not sent** (`docs/outreach/`) |
 | **4 (Aug 25)** | Bulk of Forge iterations run; `ledger.jsonl` + `progress.png` committed |
 | **5 (Aug 26)** | `make_briefs.py` generates the full committed brief set; brief quality reviewed by hand |
 | **6 (Aug 27)** | Vercel console: replay picker, detection view, brief display. Deployed and public |
@@ -254,6 +268,15 @@ No existing contacts in space. All three channels attempted in parallel, startin
 ---
 
 ## 11. Open item — the differentiating demo beat
+
+**Day 3 update: the evidence now points at the first candidate, and it arrived unstaged.**
+Iteration 1 raised the engine's minimum window length. Dev F1 went *up* (0.235 → 0.258),
+holdout F1 went *down* (0.266 → 0.250), and the gate reverted it — the held-out split
+catching a change that looked like an improvement on the only data the agent could see.
+Bob diagnosed it correctly in its own report without being prompted to. That is ten
+seconds of footage no entrant showing a rising curve can match, and it is already in
+`results/ledger.jsonl`. Lead with it unless Day 4 produces something stronger, and do not
+re-shoot it.
 
 Needed: one thing in the 3-minute video no other entrant will have. Candidates to test on Day 5–6, decided by evidence, not preference:
 
