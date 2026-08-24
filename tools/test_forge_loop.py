@@ -81,6 +81,29 @@ def test_harness_outputs_are_not_blamed_on_bob() -> None:
     check("brief edit is a violation", "results/briefs/A-5_2757-2807.md" in stray2)
 
 
+def test_pre_existing_dirt_is_not_blamed_on_bob() -> None:
+    """The guardrail asks what changed *during* the call, not what is dirty after it.
+
+    Iteration 4 was discarded — and 1.14 coins with it — because unrelated files were
+    saved into the repo while Bob was mid-edit. The harness called that a violation,
+    reverted Bob's work, and `git clean`ed the unrelated files out of existence. The
+    snapshot taken before the call is what makes that impossible.
+    """
+    snapshot = {"docs/outreach/README.md", "notes/scratch.md"}
+    engine, stray = fl.classify(
+        ["docs/outreach/README.md", "notes/scratch.md", "engine/detect.py"],
+        ignore=fl.harness_outputs("iter9") | snapshot,
+    )
+    check("files present before the call are exempt", stray == [], str(stray))
+    check("Bob's actual edit is still seen", engine == ["engine/detect.py"])
+
+    _, stray2 = fl.classify(
+        ["docs/outreach/README.md", "tools/score.py"],
+        ignore=fl.harness_outputs("iter9") | snapshot,
+    )
+    check("a scorer edit during the call still trips", stray2 == ["tools/score.py"], str(stray2))
+
+
 def test_revert_restores_engine() -> None:
     """A reverted iteration must leave `engine/` byte-identical.
 
@@ -264,6 +287,7 @@ def test_report_extraction() -> None:
 def main() -> int:
     print("harness tests - no Bobcoins spent")
     for test in (test_classify, test_harness_outputs_are_not_blamed_on_bob,
+                 test_pre_existing_dirt_is_not_blamed_on_bob,
                  test_revert_restores_engine, test_prompt_is_self_contained,
                  test_history_carries_reverted_levers, test_bob_is_launchable,
                  test_commit_names_bob_as_author, test_budget_accounting,

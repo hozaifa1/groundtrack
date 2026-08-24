@@ -624,6 +624,16 @@ def iterate(args, iteration: int, before: dict) -> tuple[dict, dict]:
         return ({"iteration": iteration, "outcome": "budget_stop",
                  "remaining_coins": round(remaining, 4)}, before)
 
+    # Snapshot first. The guardrail asks "what changed *while Bob was running*", not
+    # "what is dirty now" — otherwise anything that appears in the working tree during
+    # the call gets blamed on Bob and reverted. That is not hypothetical: iteration 4
+    # was discarded, and 1.14 coins with it, because the operator saved unrelated files
+    # into the repo while Bob was mid-edit. The harness then deleted those files too.
+    before_paths = set(touched_paths())
+    if any(not p.startswith("results/") for p in before_paths):
+        print("  note: tree was already dirty at {0}; those paths are exempt".format(
+            sorted(p for p in before_paths if not p.startswith("results/"))))
+
     payload = run_bob(prompt, args.max_cost, args.max_turns, tag, args.timeout)
     stats = payload.get("stats") or {}
     reported_cost = stats.get("session_costs")
@@ -663,7 +673,8 @@ def iterate(args, iteration: int, before: dict) -> tuple[dict, dict]:
         append_ledger(entry)
         return entry, before
 
-    engine_paths, stray = classify(touched_paths(), ignore=harness_outputs(tag))
+    engine_paths, stray = classify(
+        touched_paths(), ignore=harness_outputs(tag) | before_paths)
 
     if stray:
         # An edit outside engine/ is not a scoring question, it is an integrity
@@ -764,6 +775,12 @@ def main() -> int:
     ap.add_argument("--timeout", type=float, default=900.0,
                     help="wall-clock seconds before the harness kills a bob run itself. "
                          "A run killed from outside leaves no ledger line at all.")
+    ap.add_argument("--record-correction", metavar="REASON",
+                    help="append a correction to the ledger, then exit. The ledger is "
+                         "append-only: a line that turns out to be wrong is corrected "
+                         "by a later line, never by editing the earlier one.")
+    ap.add_argument("--corrects", type=int, metavar="ITERATION",
+                    help="which iteration --record-correction is about")
     ap.add_argument("--record-aborted", metavar="REASON",
                     help="append a ledger line for a run that was killed from outside "
                          "this harness, then exit. Cost is recorded as unknown, because "
@@ -773,6 +790,20 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true",
                     help="score, build and save the prompt, then exit without calling Bob")
     args = ap.parse_args()
+
+    if args.record_correction:
+        if args.corrects is None:
+            sys.exit("--record-correction needs --corrects <iteration>")
+        append_ledger({
+            "iteration": args.corrects,
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "outcome": "correction",
+            "corrects_iteration": args.corrects,
+            "cost": 0.0,
+            "note": args.record_correction,
+        })
+        print("recorded a correction to iteration {0}".format(args.corrects))
+        return 0
 
     if args.record_aborted:
         # The ledger is written only by this harness, never by hand. An attempt that
