@@ -132,6 +132,20 @@ def test_prompt_is_self_contained() -> None:
     check("prompt fits a Windows command line", len(prompt) < 30000, str(len(prompt)))
 
 
+def test_bob_is_launchable() -> None:
+    """npm installs the CLI as `bob.CMD`, which `subprocess` will not resolve alone.
+
+    A bare "bob" works in every terminal and raises FileNotFoundError from Python,
+    which is exactly the kind of failure that shows up first on the night of a run.
+    """
+    import subprocess
+
+    exe = fl.bob_executable()
+    check("bob resolves to a real file", Path(exe).exists(), exe)
+    proc = subprocess.run([exe, "--version"], capture_output=True, text=True)
+    check("bob is launchable from subprocess", proc.returncode == 0, proc.stderr[:200])
+
+
 def test_budget_accounting() -> None:
     """The ledger is the only record of spend, so the arithmetic on it must hold."""
     entries = fl.ledger_entries()
@@ -164,7 +178,7 @@ def test_report_extraction() -> None:
 def main() -> int:
     print("harness tests - no Bobcoins spent")
     for test in (test_classify, test_revert_restores_engine, test_prompt_is_self_contained,
-                 test_budget_accounting, test_report_extraction):
+                 test_bob_is_launchable, test_budget_accounting, test_report_extraction):
         print("\n" + test.__name__)
         test()
     print("\n{0} passed, {1} failed".format(PASSED, FAILED))

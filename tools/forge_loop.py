@@ -37,6 +37,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import statistics
 import subprocess
 import sys
@@ -87,6 +88,20 @@ def api_key() -> str:
     if not path.exists():
         sys.exit("competition.json not found. It holds the IBM API key and is gitignored.")
     return json.loads(path.read_text(encoding="utf-8"))["apikey"]
+
+
+def bob_executable() -> str:
+    """Absolute path to the Bob CLI.
+
+    npm installs it on Windows as `bob.CMD`. `subprocess` without a shell resolves
+    only `.exe`, so a bare "bob" raises FileNotFoundError here even though it works
+    in every terminal. `shutil.which` applies PATHEXT and finds the real file, which
+    is better than hardcoding an npm prefix that differs per machine.
+    """
+    found = shutil.which("bob")
+    if not found:
+        sys.exit("The `bob` CLI is not on PATH. Install it before running the forge loop.")
+    return found
 
 
 # --------------------------------------------------------------------------
@@ -320,7 +335,7 @@ def run_bob(prompt: str, max_cost: float, max_turns: int, tag: str) -> dict:
     env["BOBSHELL_API_KEY"] = api_key()
 
     cmd = [
-        "bob", "run",
+        bob_executable(), "run",
         "--format", "json",
         "--max-cost", str(max_cost),
         "--max-turns", str(max_turns),
@@ -615,6 +630,9 @@ def main() -> int:
 
     if not VENV_PY.exists():
         sys.exit("virtualenv interpreter not found at " + str(VENV_PY))
+    if not args.dry_run:
+        # Fail here rather than after a 45-second scoring pass and a built prompt.
+        bob_executable()
 
     dirty = [p for p in touched_paths() if not p.startswith("results/")]
     if dirty and not args.dry_run:
