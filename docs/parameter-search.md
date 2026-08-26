@@ -117,3 +117,23 @@ Three mechanisms from the post-2018 literature — EWMA residual smoothing, a tr
 scale estimate, and hysteresis thresholding — were implemented and searched the same
 way. The best of them gained **+0.0086 holdout F1**, less than a single one of the 35
 held-out windows. See [`literature-review.md`](literature-review.md).
+
+## Day 4: the same method, pushed until it broke
+
+The search above chose two constants and they held up: dev 0.608, holdout 0.623, a
+generalisation gap of roughly zero. Day 4 ran the same method against the *scoring*
+stage — replacing the detector's peak test with an area test — found dev 0.702, the
+largest dev gain of the project, and the gate reverted it at holdout 0.615.
+
+Chasing that produced the more useful result. Across the 432 admissible configurations
+of that sweep, **dev F1 and held-out F1 are uncorrelated: Pearson +0.007, Spearman
+−0.001.** 382 of them beat the committed engine on dev; 58 beat it on holdout. A dev win
+raises the chance of a held-out win from 13.4% to 14.7%.
+
+The same work also put an error bar on every holdout figure this search harness has ever
+reported: the sweep's numpy rolling median and the engine's pandas rolling median differ
+by enough to flip one held-out window, which is ±0.02 F1 on a 35-window split.
+
+Both findings, and what they mean for the plan, are in
+[`generalisation.md`](generalisation.md). The short version is that score work stopped
+here, deliberately and in advance of the budget running out.

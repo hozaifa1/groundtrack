@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 3 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 82. Five forge iterations were reverted by the gate before one was kept. IBM Granite runs locally and writes operator briefs that regenerate byte-for-byte.
+> **Status: in active development (Day 4 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 82. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and writes operator briefs that regenerate byte-for-byte.
 
 ---
 
@@ -58,7 +58,7 @@ Bobcoin spend is capped per call and tracked per iteration. Failed experiments a
 
 ## What the loop has actually done
 
-Six live iterations. Five reverted, one kept, and the ledger carries all of them:
+Seven live iterations after the baseline. One kept, four reverted by the gate, one discarded unscored, one aborted — and the ledger carries all of them, including the two that cost coins and produced nothing:
 
 | # | Bob's change | dev F1 | holdout F1 | Verdict |
 |---|---|---|---|---|
@@ -67,6 +67,7 @@ Six live iterations. Five reverted, one kept, and the ledger carries all of them
 | 4 | *(never scored — see below)* | — | — | discarded |
 | 5 | global MAD → rolling local MAD | 0.235 → 0.148 | 0.266 → 0.249 | reverted |
 | 6 | threshold → 6.0σ **and** merge gap → 150 | 0.235 → 0.608 | 0.266 → **0.623** | **kept** |
+| 7 | peak test → **area** test (Σ excursion above 4σ ≥ 40) | 0.608 → **0.702** | 0.623 → 0.615 | reverted |
 
 Iteration 1 is still the one worth looking at. Bob's edit **improved the score on the data
 Bob could see** and hurt the held-out score — exactly the failure the split exists to
@@ -91,6 +92,24 @@ part where the search first found a way to score **dev F1 0.807** by emitting on
 1668-sample window per channel covering 39% of the telemetry. The metric is gameable, the
 scorer is fixed and cannot be patched to close it, and walking through that hole was
 declined in writing rather than quietly taken.
+
+Iteration 7 is the one that ended the search, and it is worth more than the
+configuration would have been. Steered by the best of 1440 offline configurations, Bob
+replaced the detector's peak test — *did any sample cross 6σ* — with an area test that
+integrates excursion over the whole window, so a three-sample glitch fails and a
+sustained 4.5σ drift passes. It produced the largest dev gain of the project, **0.608 →
+0.702**, and lost on holdout. Bob implemented it faithfully: the ledger's dev figure
+matches the offline prediction to six decimal places.
+
+So the region was measured rather than argued about. Across all 432 admissible
+configurations of that sweep, **dev F1 and held-out F1 are uncorrelated — Pearson +0.007,
+Spearman −0.001.** 382 of them beat the committed engine on dev; 58 beat it on holdout.
+Filtering by a dev win moves your odds of a held-out win from 13.4% to 14.7%, and the
+configuration the dev search was designed to return scores **0.597** on held-out channels
+against the committed engine's 0.623. Score work stopped there, on a rule written down
+in advance and with roughly 28 of 40 Bobcoins still unspent. The reasoning, the
+one-window error bar found in the search harness along the way, and what it says about
+this benchmark are in [`docs/generalisation.md`](docs/generalisation.md).
 
 Eight years of follow-up literature was then read and its recommended refinements — EWMA
 residual smoothing, trimmed scale estimation, hysteresis thresholding — were implemented
@@ -146,6 +165,7 @@ Every claim here is meant to be checked, not believed. None of these commands sp
 ```bash
 git log --format='%an' -- 'engine/*.py' | sort -u   # names IBM Bob, nothing else
 cat results/ledger.jsonl                            # every iteration, cost, outcome
+.venv/Scripts/python.exe tools/plot_progress.py      # redraws results/progress.png from that ledger
 python tools/score.py                               # reproduce the headline metric
 python tools/test_score.py                          # validate the ruler itself
 python tools/test_forge_loop.py                     # validate the harness that keeps/reverts
