@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 4 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 82. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and writes operator briefs that regenerate byte-for-byte.
+> **Status: in active development (Day 5 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 81. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections** the engine emits; they regenerate byte-for-byte.
 
 ---
 
@@ -25,7 +25,7 @@ Groundtrack splits the problem in two, and the split is the point.
 - [`tools/score.py`](tools/score.py) — the metric, the data split, the failure reporting — is authored outside the forge loop, committed before the engine exists, and Bob may never touch it. What matters is not who typed it but that the agent under test cannot reach its own grader.
 - **IBM Bob authors 100% of [`engine/`](engine/)** — including the initial baseline — running headlessly through `bob run` inside a scored keep/discard loop. Bob proposes one minimal edit, the scorer re-runs, and the harness commits the change or reverts it.
 - **Where the direction comes from is stated, not implied.** Bob proposed and wrote iterations 1–5 unaided; all five were reverted by the gate. The kept iteration implemented two constants found by an offline dev-split search run on the developer's machine. Bob wrote the code and the reasoning; the search chose the numbers; the held-out gate decided. That division of labour is recorded in [`engine/detect.py`](engine/detect.py) itself — Bob wrote the provenance comment above the constants unprompted — and worked through in [`docs/parameter-search.md`](docs/parameter-search.md).
-- **IBM Granite** (`granite4:3b`, run locally through Ollama) turns a detection into a plain-language operations brief, generated offline and committed to the repo. Decoding is pinned so the briefs regenerate byte-for-byte — `tools/make_briefs.py --check` re-asks Granite and diffs the answer against what is committed.
+- **IBM Granite** (`granite4:3b`, run locally through Ollama) turns a detection into a plain-language operations brief, generated offline and committed to the repo — all **78** of them, one per detection, with no curation step choosing which to show. Decoding is pinned so the briefs regenerate byte-for-byte — `tools/make_briefs.py --check` re-asks Granite and diffs the answer against what is committed.
 
 Because the thing that grades the agent sits outside the agent's reach, the central claim is checkable rather than asserted:
 
@@ -83,8 +83,32 @@ Iteration 6 is why they failed. The two constants **interact**, and one-at-a-tim
 cannot find the pair: 6σ alone loses recall because a real anomaly crosses the threshold
 in several short bursts, and a 150-sample merge gap is what reconstitutes those bursts
 into the single event they physically are. Together they take holdout precision from
-0.163 to 0.731 — 128 false positives down to 7 — while flagging the same 14% of each
-channel as before. Fewer, better-consolidated windows, not bigger ones.
+0.163 to 0.731 — 128 false positives down to 7. Fewer windows, each consolidating
+bursts the old merge gap left scattered.
+
+The cleanest way to see what that iteration bought is not the F1 at all — it is the
+operator's inbox. Run the committed engine over all 81 channels and it emits **78
+windows on 48 channels**. Run the iteration-0 baseline over the same 81 channels and it
+emits **506 windows on 60 channels**. One sixth as many things to triage, and the share
+of them worth reading went from roughly one in six to roughly two in three. That is the
+entire brief set: 78 detections, 78 Granite briefs, no curation. At 506 there would have
+been no honest way to show them all, and choosing a readable subset would have meant
+choosing which failures a reader got to see.
+
+What the change did **not** do is flag less telemetry, and it is worth being exact about
+that because the workload framing invites the opposite assumption. Averaged over all 81
+channels, the flagged share went **up**, 13.2% → 15.8%. The windows got much longer —
+mean 120 → 968 samples, median 26 → 134 — because a 150-sample merge gap is precisely an
+instruction to join bursts that 50 samples left apart. The gain is consolidation and
+precision, not less telemetry under suspicion.
+
+That has a tail worth stating: **9 of the 78 windows cover more than half their channel,
+seven of them upwards of 99%** — against 4 of 506 at the baseline. A window spanning a
+whole channel tells an operator very little, and it still scores as a true positive if a
+labelled anomaly falls anywhere inside it. That is the metric hole described in
+[`docs/parameter-search.md`](docs/parameter-search.md) showing up in the shipped engine
+rather than in a rejected search candidate — smaller than the degenerate configurations
+that were declined, and not zero.
 
 That pair was found by an offline dev-split search, not by Bob, and
 [`docs/parameter-search.md`](docs/parameter-search.md) says so at length — including the
@@ -133,7 +157,8 @@ The cap is 3 rather than 1 because of something measured on Day 2: a run that hi
 
 **Telemanom** — real labelled spacecraft telemetry from NASA's Soil Moisture Active Passive satellite (SMAP) and the Mars Science Laboratory rover (MSL). Apache-2.0.
 
-- 82 channels · 105 expert-labelled anomaly sequences · 62 point, 43 contextual
+- 81 channels · 105 expert-labelled anomaly sequences · 62 point, 43 contextual
+  (`labeled_anomalies.csv` has 82 rows, but `P-2` is listed twice — identical spacecraft and length — so 81 distinct channels have telemetry)
 - Split deterministically by channel-id hash into **56 dev / 26 holdout** channels (**70 / 35** labelled windows)
 - Bob sees failures from `dev` only. `holdout` decides whether an iteration is kept.
 
@@ -171,6 +196,7 @@ python tools/test_score.py                          # validate the ruler itself
 python tools/test_forge_loop.py                     # validate the harness that keeps/reverts
 python tools/fetch_data.py --check                  # confirm the benchmark is intact
 python tools/make_briefs.py --check                 # regenerate a Granite brief, diff it
+.venv/Scripts/python.exe tools/audit_briefs.py      # check all 78 briefs against the telemetry
 ```
 
 `tools/test_forge_loop.py` is the one to read if you doubt the gate. It asserts that an
@@ -184,6 +210,15 @@ Bobcoins.
 Granite for the brief again, and diffs it against the committed file. It is meant to
 print `OK ... reproduces exactly`. If it prints a diff, something really did change.
 
+`tools/audit_briefs.py` answers the other question. `--check` proves the briefs came
+out of Granite; it does not prove they are *true*. The audit re-derives all 78
+detections from the engine and checks that every number in every brief traces to the
+telemetry it was generated from, that no brief invents a subsystem or procedure id,
+and that none dropped a section. It needs no Ollama and takes about a minute. It is a
+lint, not a proof — whether a sentence is a fair *reading* of the numbers is still a
+human judgement, which is the point: it leaves a reviewer reading prose instead of
+checking arithmetic.
+
 Raw `bob run` transcripts are committed under `results/bob_runs/`, so the `task_id`
 and coin cost in the ledger can be checked against Bob's own output rather than taken
 on trust.
@@ -195,10 +230,11 @@ Stated here rather than left for a reader to find:
 - **The runbook text is illustrative**, templated from Telemanom's public channel metadata. It is not certified NASA operational doctrine.
 - **The held-out split is small** — 35 labelled windows. F1 on that many events is noisy, and a large swing between iterations should be read with suspicion.
 - **Granite briefs are pre-generated offline**, not produced live per request. The generation script ships, so anyone with Ollama can regenerate and diff them — `--check` does exactly that and is expected to reproduce the committed text exactly.
-- **Only some detections are briefed.** The baseline emits 466 windows and most are false alarms; briefing all of them is hours of CPU inference for output nobody would read. The README will state the final count and the basis for it.
+- **Every detection is briefed, and that is only affordable because there are few of them.** The committed engine emits 78 windows, so all 78 are briefed with no curation step. The iteration-0 baseline emits 506, and briefing those would have been about 25 hours of single-threaded CPU inference for output that is mostly false alarms — at that count a subset would have been unavoidable, and picking it would have been picking what a reader gets to see. An earlier draft of this README put the baseline at 466 windows; re-measured against the iteration-0 engine as committed, it is 506.
 - **The beneficiary is not yet validated.** Small-team mission ops is a plausible user, not a confirmed one. Outreach is drafted in [`docs/outreach/`](docs/outreach/) and not yet sent; that directory also states in advance what may be claimed if nobody replies, which is nothing.
 - **Bob did not find the winning configuration; an offline search did.** Bob proposed and wrote iterations 1–5 unaided and the gate reverted all five. The kept iteration implemented two numbers chosen by an offline dev-split search. Bob wrote every line of the engine and the reasoning in it, and the held-out gate still decided — but "the agent improved its own score by itself" is not a claim this project makes.
 - **The metric has a hole in it, and it is documented.** Window-overlap F1 rewards emitting one enormous window per channel. `tools/score.py` is fixed and is not being patched to close it, so the search carries an operational constraint instead and rejects degenerate configurations. See [`docs/parameter-search.md`](docs/parameter-search.md).
+- **The shipped engine sits partly inside that hole.** 9 of its 78 windows cover more than half their channel and seven cover upwards of 99%, so those detections score as true positives while telling an operator almost nothing about *where* to look. The baseline did this on 4 of 506. It is a smaller effect than the configurations that were rejected for it, and it is not absent — the briefs for those channels are committed alongside the rest rather than filtered out, so the weakest output is visible too.
 - **Recall went down.** 0.714 → 0.543 on holdout. The F1 gain is entirely precision. A mission-ops team that would rather chase false alarms than miss an event should tune this differently, and the search harness ships so they can.
 
 ## License

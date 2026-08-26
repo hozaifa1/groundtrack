@@ -68,6 +68,21 @@ def _command_names(d: dict) -> list[str]:
     return [c.strip() for c in d["cmds"].split(",") if c.strip()]
 
 
+def _command_suffixes(d: dict) -> list[float]:
+    """The numeric parts of the active command names.
+
+    Granite abbreviates a long command list as a range - given cmd_10 through
+    cmd_16 it writes `cmd_10-16`, which is accurate and shorter. Masking the
+    individual names leaves the `16` behind, so the suffixes count as grounded.
+    """
+    out = []
+    for name in _command_names(d):
+        m = re.search(r"(\d+)$", name)
+        if m:
+            out.append(float(m.group(1)))
+    return out
+
+
 def candidate_values(d: dict) -> list[float]:
     """Every number a truthful brief about this detection could quote."""
     vals = [
@@ -79,6 +94,7 @@ def candidate_values(d: dict) -> list[float]:
     vals.append(d["w_mean"] - d["b_mean"])
     vals.append(abs(d["w_mean"] - d["b_mean"]))
     vals.extend(DETECTOR_CONSTANTS)
+    vals.extend(_command_suffixes(d))
     # Enumerating steps ("1.", "2.", "3.") in WHAT TO DO NEXT.
     vals.extend((1.0, 2.0, 3.0))
     return [float(v) for v in vals]
@@ -113,6 +129,7 @@ def audit(verbose: bool = False) -> int:
     dropped_sections: list[tuple[str, str]] = []
     invented: list[tuple[str, str]] = []
     ungrounded: list[tuple[str, str, str]] = []
+    advisory: list[tuple[str, str, str]] = []
 
     for path in briefs:
         key = path.stem
@@ -130,16 +147,29 @@ def audit(verbose: bool = False) -> int:
         body = body.replace(d["channel"], "<CHAN>")
         for cmd in sorted(_command_names(d), key=len, reverse=True):
             body = body.replace(cmd, "<CMD>")
+        # `cmd_10-16` masks down to `<CMD>-16`, whose tail would otherwise read as
+        # the number -16. Collapse the whole range to one token.
+        body = re.sub(r"<CMD>\s*[-–]\s*\d+", "<CMD>", body)
 
         for section in SECTIONS:
             if section not in body:
                 dropped_sections.append((key, section))
 
         cands = candidate_values(d)
+        advice_at = body.find(SECTIONS[2])
         for m in NUMBER.finditer(body):
-            if not is_grounded(float(m.group()), cands):
-                context = body[max(0, m.start() - 50): m.end() + 30]
-                ungrounded.append((key, m.group(), " ".join(context.split())))
+            if is_grounded(float(m.group()), cands):
+                continue
+            context = " ".join(body[max(0, m.start() - 50): m.end() + 30].split())
+            # A number in WHAT HAPPENED or WHY IT MATTERS is a claim about the
+            # telemetry and has to be traceable to it. A number in WHAT TO DO NEXT
+            # is usually advice - "monitor for 30 minutes" - which the telemetry
+            # cannot confirm or contradict, because it carries no timebase at all.
+            # Those are surfaced for a human to read rather than counted as defects.
+            if advice_at != -1 and m.start() > advice_at:
+                advisory.append((key, m.group(), context))
+            else:
+                ungrounded.append((key, m.group(), context))
 
         for m in IDENTIFIER.finditer(body):
             invented.append((key, m.group()))
@@ -150,6 +180,13 @@ def audit(verbose: bool = False) -> int:
     print(f"dropped sections:               {len(dropped_sections)}")
     print(f"invented identifiers:           {len(invented)}")
     print(f"ungrounded numbers:             {len(ungrounded)}")
+    print(f"advisory numbers (not defects): {len(advisory)}")
+
+    if advisory:
+        print("\nnumbers in WHAT TO DO NEXT with no basis in the telemetry -")
+        print("advice rather than measurement, listed so a reviewer sees them:")
+        for key, num, context in advisory:
+            print(f"  ADVISORY   {key}: {num}  ...{context}...")
 
     findings = len(stale) + len(dropped_sections) + len(invented) + len(ungrounded)
     if findings and (verbose or findings <= 40):
