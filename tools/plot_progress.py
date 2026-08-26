@@ -68,10 +68,18 @@ def as_float(value) -> float | None:
 
 
 def label_of(entry: dict, index: int) -> str:
+    """Tick label for one ledger entry.
+
+    Iteration 4 has two entries - the run itself and the `correction` line that
+    reversed the harness's verdict on it - so the correction is suffixed rather than
+    printed as a second bare "4" under a different point.
+    """
     it = entry.get("iteration")
     attempt = entry.get("attempt")
     if it is None:
         return str(index)
+    if entry.get("outcome") == "correction":
+        return f"{it}c"
     return f"{it}.{attempt}" if attempt not in (None, 1) else str(it)
 
 
