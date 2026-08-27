@@ -12,6 +12,11 @@ including the negative ones — is.
 
 ## Method
 
+- The search harness is [`tools/sweep.py`](../tools/sweep.py) — the path Bob's own
+  provenance comment in `engine/detect.py` names. It was written for that path and run
+  from it; an over-broad `local/` gitignore rule kept it out of the first push, so the
+  comment pointed at a file a reader could not open. Committed here unmodified.
+  `.venv/Scripts/python.exe tools/sweep.py --selftest` prints `MATCH`.
 - The sweep reimplements the committed detector and **self-tests against the ruler**
   before any result is believed: the search's self-test runs the committed
   configuration and checks it reproduces `tools/score.py` exactly (tp=45, fp=268, fn=25,
@@ -122,8 +127,8 @@ held-out windows. See [`literature-review.md`](literature-review.md).
 
 The search above chose two constants and they held up: dev 0.608, holdout 0.623, a
 generalisation gap of roughly zero. Day 4 ran the same method against the *scoring*
-stage — replacing the detector's peak test with an area test — found dev 0.702, the
-largest dev gain of the project, and the gate reverted it at holdout 0.615.
+stage — replacing the detector's peak test with an area test — found dev 0.702 — the
+largest dev gain of any reverted iteration — and the gate reverted it at holdout 0.615.
 
 Chasing that produced the more useful result. Across the 432 admissible configurations
 of that sweep, **dev F1 and held-out F1 are uncorrelated: Pearson +0.007, Spearman

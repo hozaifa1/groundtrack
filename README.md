@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 5 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 81. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections** the engine emits; they regenerate byte-for-byte.
+> **Status: in active development (Day 6 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 81. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections** the engine emits; they regenerate byte-for-byte.
 
 ---
 
@@ -89,8 +89,9 @@ bursts the old merge gap left scattered.
 The cleanest way to see what that iteration bought is not the F1 at all — it is the
 operator's inbox. Run the committed engine over all 81 channels and it emits **78
 windows on 48 channels**. Run the iteration-0 baseline over the same 81 channels and it
-emits **506 windows on 60 channels**. One sixth as many things to triage, and the share
-of them worth reading went from roughly one in six to roughly two in three. That is the
+emits **506 windows on 60 channels**. One sixth as many things to triage. On the 26
+held-out channels — a different population from that count, and worth keeping separate —
+precision went from 0.163 to 0.731 over the same change. That is the
 entire brief set: 78 detections, 78 Granite briefs, no curation. At 506 there would have
 been no honest way to show them all, and choosing a readable subset would have meant
 choosing which failures a reader got to see.
@@ -121,8 +122,9 @@ Iteration 7 is the one that ended the search, and it is worth more than the
 configuration would have been. Steered by the best of 1440 offline configurations, Bob
 replaced the detector's peak test — *did any sample cross 6σ* — with an area test that
 integrates excursion over the whole window, so a three-sample glitch fails and a
-sustained 4.5σ drift passes. It produced the largest dev gain of the project, **0.608 →
-0.702**, and lost on holdout. Bob implemented it faithfully: the ledger's dev figure
+sustained 4.5σ drift passes. It moved dev F1 **0.608 → 0.702** — the largest dev gain of any iteration the gate went
+on to revert — and lost on holdout. (Iteration 6 moved dev further, 0.235 → 0.608; that
+one was kept.) Bob implemented it faithfully: the ledger's dev figure
 matches the offline prediction to six decimal places.
 
 So the region was measured rather than argued about. Across all 432 admissible

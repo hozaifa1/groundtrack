@@ -1,8 +1,9 @@
 # What a dev-split gain is actually worth
 
 Day 4 bought one forge iteration with the best configuration a 1440-point offline search
-could find. It raised dev F1 from 0.608 to 0.702 — the largest dev gain of the project —
-and the held-out gate reverted it. Chasing that result produced a more useful finding
+could find. It raised dev F1 from 0.608 to 0.702 — the largest dev gain of any
+iteration the gate went on to revert — and the held-out gate reverted it. (Iteration 6
+moved dev further still, 0.235 → 0.608, and was kept.) Chasing that result produced a more useful finding
 than the configuration would have been.
 
 **In the region this project has been searching, dev F1 and held-out F1 are

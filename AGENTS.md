@@ -43,9 +43,8 @@ Dependencies live in the project virtualenv, **not** in the system Python. The b
 .venv/Scripts/python.exe tools/score.py --failures dev
 ```
 
-A full scoring pass reads all 81 telemetry files and takes roughly 30-60 seconds.
-That is expected, not a hang. Run it once, read the result, and act on it — do not
-re-run it speculatively.
+A full scoring pass reads all 81 telemetry files and takes about 5-6 seconds. Run it
+once, read the result, and act on it — do not re-run it speculatively.
 
 ## Constraints
 
