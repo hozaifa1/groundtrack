@@ -54,3 +54,9 @@ local/
 *.sweep.json
 sweep_*.json
 results/sweep_*
+
+# Vercel CLI project link
+.vercel/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

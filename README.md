@@ -4,7 +4,7 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) — August theme, *Advance Space Exploration with AI*.
 
-> **Status: in active development (Day 6 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 81. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections** the engine emits; they regenerate byte-for-byte.
+> **Status: in active development (Day 6 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 81. Seven forge iterations have run; one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence** — in the region being searched, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections** the engine emits; they regenerate byte-for-byte. A static [console](#the-console) reads all of it back: the telemetry, the labelled anomalies, the engine's calls, the briefs, the ledger, and iteration 0 re-executed out of git for comparison.
 
 ---
 
@@ -185,6 +185,46 @@ python tools/score.py             # grade the current engine
 interpreter, call the venv one explicitly — `.venv/Scripts/python.exe tools/score.py`
 on Windows — or the scorer will fail on a missing import rather than on the metric.
 
+## The console
+
+A static web console for reading the engine's output the way an operator would.
+It is a **viewer, not a service**: everything it shows was computed once by
+[`tools/export_console.py`](tools/export_console.py) and written to
+`web/public/data/` as JSON. The deployed page runs no Python, calls no model,
+and has no backend, so it cannot fail during a demo and costs nothing to host.
+
+```bash
+python tools/export_console.py    # freeze engine output, labels and briefs to JSON
+npm --prefix web ci
+npm --prefix web run dev          # http://localhost:5273
+```
+
+What it shows:
+
+- **Channel index** - all 81 benchmark channels, with the split each belongs to
+  and how many windows the engine raised on it.
+- **The telemetry plate** - the full pass, with three rails beneath it on one
+  shared x-axis: where the benchmark says anomalies are, where the engine fired,
+  and, when you ask for it, where **iteration 0** fired. A detection that landed
+  on a labelled anomaly is solid; a false positive is drawn hollow. A labelled
+  anomaly nobody caught is drawn in red. The misses are not hidden, because a
+  console that only draws its hits is a highlight reel.
+- **Why it fired** - the detector's own deviation measure with the 6-sigma
+  cut-off drawn where it actually sits.
+- **The brief** - the committed Granite brief for the selected detection, split
+  into what happened, why it matters, and what to do next.
+- **The loop** - all ten ledger entries, kept and reverted alike, including the
+  attempt whose cost was never recorded because a shell timeout killed it from
+  outside. That row renders as "not recorded" rather than 0.00.
+
+It opens on **T-1** by default, chosen by criteria rather than by name: a
+held-out channel where the engine catches both labelled anomalies with a single
+window, and where iteration 0 raised 88. Turning on the comparison puts 1 mark
+and 88 marks on the same axis, which is the clearest statement of what the forge
+loop actually bought.
+
+Design notes are in [`web/DESIGN.md`](web/DESIGN.md).
+
 ## Verify this yourself
 
 Every claim here is meant to be checked, not believed. None of these commands spend Bobcoins.
@@ -199,6 +239,7 @@ python tools/test_forge_loop.py                     # validate the harness that 
 python tools/fetch_data.py --check                  # confirm the benchmark is intact
 python tools/make_briefs.py --check                 # regenerate a Granite brief, diff it
 .venv/Scripts/python.exe tools/audit_briefs.py      # check all 78 briefs against the telemetry
+python tools/export_console.py --check              # confirm the console shows the current engine
 ```
 
 `tools/test_forge_loop.py` is the one to read if you doubt the gate. It asserts that an

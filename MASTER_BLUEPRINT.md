@@ -128,7 +128,9 @@ repo/
     ledger.jsonl                   every iteration: task_id, cost, turns, score, keep/discard
     progress.png                   generated FROM ledger.jsonl, never hand-drawn
     briefs/                        Granite-generated ops briefs, committed
-  web/                             Next.js console on Vercel, serves cached data only
+  web/                             Vite + React console on Vercel, serves cached data only
+    public/data/                   static JSON written by tools/export_console.py; the
+                                   deployed page never runs Python, Bob, or Granite
 ```
 
 **Dev-time loop (Bob):** `forge_loop.py` → `bob run --mode anomaly-forge-engineer -f json` → Bob edits `engine/*.py` → `score.py` runs → improved? commit : revert → append to ledger.
@@ -218,7 +220,7 @@ Granite work starts Day 2 in parallel, not Day 5 — the feasibility critic flag
 | **3 (Aug 24)** | ✅ Forge loop wired end-to-end; four live calls verified JSON parsing, cost caps, the guardrail, and the revert gate. All four reverted — holdout F1 unchanged at 0.266. Outreach **drafted, not sent** (`docs/outreach/`) |
 | **4 (Aug 25)** | Bulk of Forge iterations run; `ledger.jsonl` + `progress.png` committed |
 | **5 (Aug 26)** | `make_briefs.py` generates the full committed brief set; brief quality reviewed by hand |
-| **6 (Aug 27)** | Vercel console: replay picker, detection view, brief display. Deployed and public |
+| **6 (Aug 27)** | ✅ Console built: channel index, telemetry plate with labelled/engine alignment rails, deviation plate with the 6-sigma cut-off, Granite brief pane, iteration-0 comparison, and the ledger view. Stack is **Vite + React**, not Next.js as this blueprint originally said; a static SPA needs no framework server and the line above is corrected rather than left to imply otherwise. Not yet deployed |
 | **7 (Aug 28)** | Integration + the falsifiability pass (§8). Fresh-clone test: can a judge reproduce the score with zero Bobcoins? **Outreach follow-up** |
 | **8 (Aug 29)** | README (problem / approach / impact / Bob usage); 3-minute video recorded |
 | **9 (Aug 30–31)** | Buffer; BeMyApp submission well before 11:59pm ET |

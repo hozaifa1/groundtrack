@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Groundtrack - spacecraft telemetry anomaly console</title>
+    <meta
+      name="description"
+      content="An anomaly-detection engine authored entirely by IBM Bob, scored against labelled NASA SMAP and MSL telemetry by a fixed benchmark it cannot reach."
+    />
+    <meta name="theme-color" content="#edeff1" />
+  </head>
+  <body>
+    <!--
+      THESIS: A mission-operations console rendered as a plate in an engineering
+      report. It refuses the dashboard-of-cards arrangement: no tiles, no KPI
+      row, no rounded containers, no shadow. Content sits on ruled paper and the
+      telemetry trace is the largest object on the screen.
+      OWN-WORLD: Diazo whiteprint stock under blue-black ink. Prussian blue is
+      the machine's voice, so every mark the engine made is blue; graphite is
+      ground truth; oxide red is only ever an alarm. Structure is hairlines and
+      column rules. Archivo, width axis pushed wide, sets every word. Azeret
+      Mono, tabular, sets every number.
+      STORY: An operator picks a channel, sees the whole pass with the engine's
+      calls drawn beneath it, opens one call, and reads the brief Granite wrote
+      offline and committed to the repository.
+      FIRST VIEWPORT: Masthead with the wordmark left and the three numbers that
+      matter right. Below it three full-height columns: a channel index that
+      scrolls alone, a centre holding the channel identifier at 72px over two
+      stacked plates and their alignment rails, and a brief column. Selecting a
+      channel is the leftmost thing on screen and never scrolls away.
+      FORM: Three-column application shell. First of five candidates, for a task
+      where the corpus, one artifact, and its explanation must stay co-visible.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the
+      finish review, the verdict, and DESIGN.md
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

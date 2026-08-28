@@ -1,0 +1,1095 @@
+/* ==========================================================================
+   Groundtrack console - the whole visual system.
+
+   One stylesheet on purpose. The world is small enough to hold in the head,
+   and a reviewer auditing "is this consistent" should have exactly one file
+   to read rather than nineteen co-located ones.
+
+   Two rules govern everything below:
+
+   1. Colour is never decoration. Prussian blue means the engine said so.
+      Graphite means the label file said so. Oxide red means somebody has to
+      look at this. Nothing on the page is coloured for interest.
+   2. Structure is rules and space, never boxes. There is no border-radius, no
+      box-shadow, and no card in this file, because an engineering plate does
+      not have them and the moment one appears the page becomes a dashboard.
+   ========================================================================== */
+
+/* Archivo's wdth face carries BOTH axes (font-weight 100-900 and font-stretch
+   62%-125%), so this is the only Archivo import needed. Adding wght.css as well
+   would redeclare the same family and ship a second copy of the font.
+   The width axis is driven through the `font-stretch` property rather than
+   font-variation-settings, so the CSS font-matching algorithm picks the face
+   instead of being bypassed. */
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/azeret-mono/wght.css";
+
+:root {
+  /* ---- stock and ink ---------------------------------------------------
+     Whiteprint: the cool grey-blue stock that spacecraft engineering
+     drawings were actually reproduced on. Deliberately not cream, which is
+     where a "technical broadsheet" drifts if nobody is holding the wheel. */
+  --paper: #edeff1;
+  --paper-sunk: #e4e7ea;
+  --paper-raised: #f6f7f8;
+  --paper-plate: #fafbfb;
+
+  --ink: #10161c;
+  --ink-2: #46525c; /* 6.9:1 on paper - safe for every text size used here */
+
+  --rule: #ccd2d7;
+  --rule-strong: #a8b1b8;
+  --rule-faint: #dfe3e6;
+
+  /* ---- the three semantic voices -------------------------------------- */
+  --signal: #16436e; /* the engine. 8.8:1 on paper  */
+  --signal-2: #3a6b9c;
+  --signal-wash: #d6dfe9;
+  --truth: #2b3238; /* ground truth. 12.6:1 on paper */
+  --truth-wash: #cdd2d6;
+  --alarm: #a32b1d; /* missed anomaly, or high severity. 6.3:1 */
+  --alarm-wash: #ecd4d0;
+  --caution: #8a5b12; /* medium severity. 5.0:1 */
+
+  /* ---- type ------------------------------------------------------------
+     Archivo carries every word; its width axis is what makes the display
+     sizes read as an engineering publication rather than a magazine. Azeret
+     Mono carries every number, always tabular, so a column of readouts
+     aligns on the decimal without a table.
+
+     The smallest type anywhere in this interface is 16px. Axis ticks and
+     field labels are normally set at 10 to 12; here they are not, and every
+     step above them was moved up to match. Density is bought with space and
+     rules in this design, never by shrinking text. */
+  --sans: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Azeret Mono Variable", ui-monospace, "Cascadia Mono", monospace;
+
+  --t-xs: 1rem; /* 16 - axis ticks, the floor           */
+  --t-sm: 1.0625rem; /* 17 - field labels                    */
+  --t-base: 1.1875rem; /* 19 - index rows, controls, prose     */
+  --t-md: 1.3125rem; /* 21 - lead paragraph                  */
+  --t-lg: 1.5rem; /* 24 - readouts, detection titles      */
+  --t-xl: 1.875rem; /* 30 - plate headings                  */
+  --t-2xl: 2.75rem; /* 44 - masthead figures                */
+  --t-3xl: 4.5rem; /* 72 - channel identifier              */
+
+  /* ---- space ----------------------------------------------------------- */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4rem;
+
+  --rail-w: 19.5rem; /* channel index  */
+  --brief-w: 29.5rem; /* brief column   */
+  --masthead-h: 6rem;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Reset and browser surfaces
+
+   The parts nobody draws still carry the design. Selection, caret, focus
+   ring, scrollbars and numerals all ship with defaults that belong to no
+   design system, so they are themed here rather than left as evidence that
+   the page was assembled instead of built.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-base);
+  font-stretch: 100%;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--paper-plate);
+}
+
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+/* Firefox takes the two-value form; WebKit needs the pseudo-elements. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border: 4px solid var(--paper);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-2);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+svg text {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Repeating type roles
+   ========================================================================== */
+
+/* A field label. Set at 17px, not the 11px this role usually gets, because a
+   label an operator has to lean in to read is a label they stop reading. */
+.label {
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.01em;
+}
+
+.display {
+  font-family: var(--sans);
+  font-stretch: 112%;
+  font-weight: 620;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   Application shell
+   ========================================================================== */
+
+.app {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--masthead-h) minmax(0, 1fr);
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr) var(--brief-w);
+  min-height: 0;
+}
+
+.shell > * {
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ---- masthead ---------------------------------------------------------- */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-6);
+  padding: 0 var(--s-6);
+  border-bottom: 1px solid var(--ink);
+  background: var(--paper);
+}
+
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+}
+
+.wordmark h1 {
+  font-family: var(--sans);
+  font-stretch: 118%;
+  font-weight: 700;
+  font-size: 1.75rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.wordmark p {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  max-width: 34ch;
+}
+
+.readouts {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.readout {
+  padding: 0 var(--s-5);
+  border-left: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.readout:first-child {
+  border-left: none;
+}
+
+.readout .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-2xl);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.readout .k {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.viewswitch {
+  display: flex;
+  border: 1px solid var(--ink);
+}
+
+.viewswitch button {
+  padding: var(--s-2) var(--s-4);
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  border-left: 1px solid var(--ink);
+  transition: background-color 140ms var(--ease), color 140ms var(--ease);
+}
+
+.viewswitch button:first-child {
+  border-left: none;
+}
+
+.viewswitch button:hover {
+  background-color: var(--paper-sunk);
+  color: var(--ink);
+}
+
+.viewswitch button[aria-pressed="true"] {
+  background-color: var(--ink);
+  color: var(--paper);
+}
+
+.viewswitch button[aria-pressed="true"]:hover {
+  background-color: var(--ink-2);
+  color: var(--paper);
+}
+
+/* ---- channel index ----------------------------------------------------- */
+
+.index {
+  border-right: 1px solid var(--rule-strong);
+  background: var(--paper-sunk);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.index-head {
+  padding: var(--s-4) var(--s-4) var(--s-3);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.search {
+  position: relative;
+  border-bottom: 1px solid var(--rule);
+}
+
+.search input {
+  width: 100%;
+  padding: var(--s-3) var(--s-4) var(--s-3) 2.75rem;
+  font-family: var(--mono);
+  font-size: var(--t-base);
+  background-color: var(--paper-raised);
+  transition: background-color 140ms var(--ease);
+}
+
+.search input::placeholder {
+  color: var(--ink-2);
+}
+
+.search input:focus {
+  background-color: var(--paper-plate);
+  outline-offset: -2px;
+}
+
+.search svg {
+  position: absolute;
+  left: var(--s-4);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
+.index-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.index-group {
+  padding: var(--s-4) var(--s-4) var(--s-2);
+  border-bottom: 1px solid var(--rule-faint);
+  background: var(--paper-sunk);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.chan {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) 3.25rem;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--rule-faint);
+  text-align: left;
+  transition: background-color 120ms var(--ease);
+}
+
+.chan:hover {
+  background-color: var(--paper-raised);
+}
+
+.chan[aria-current="true"] {
+  background-color: var(--ink);
+  color: var(--paper);
+  border-bottom-color: var(--ink);
+}
+
+.chan-id {
+  font-family: var(--mono);
+  font-size: var(--t-base);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* The split badge is a bracketed monogram, not a pill. DEV and HOLDOUT are
+   the two halves of the integrity story, so they get a persistent mark. */
+.chan-split {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+
+.chan[aria-current="true"] .chan-split,
+.chan[aria-current="true"] .chan-count {
+  color: var(--truth-wash);
+}
+
+.chan-count {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-base);
+  text-align: right;
+  color: var(--ink-2);
+}
+
+.chan-count.fired {
+  color: var(--signal);
+  font-weight: 600;
+}
+
+.chan[aria-current="true"] .chan-count.fired {
+  color: #9dc0e4;
+}
+
+/* A 56px sparkline of where the engine fired on this channel. This is real
+   data at a real scale, not a decorative squiggle standing in for content. */
+.chan-marks {
+  height: 0.75rem;
+  display: block;
+  width: 100%;
+}
+
+/* ---- centre column ----------------------------------------------------- */
+
+.plate-col {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--paper);
+}
+
+.chan-head {
+  padding: var(--s-6) var(--s-6) var(--s-5);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-6);
+  flex-wrap: wrap;
+}
+
+.chan-head h2 {
+  font-family: var(--sans);
+  font-stretch: 115%;
+  font-weight: 640;
+  font-size: var(--t-3xl);
+  letter-spacing: -0.035em;
+  line-height: 0.9;
+}
+
+.chan-facts {
+  display: flex;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fact .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.fact .k {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.plate {
+  padding: var(--s-6);
+  border-bottom: 1px solid var(--rule);
+}
+
+.plate-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.plate-head h3 {
+  font-family: var(--sans);
+  font-stretch: 108%;
+  font-weight: 600;
+  font-size: var(--t-xl);
+  letter-spacing: -0.02em;
+}
+
+.plate-figure {
+  background: var(--paper-plate);
+  border: 1px solid var(--rule);
+}
+
+.plate-figure svg {
+  display: block;
+  width: 100%;
+}
+
+.caption {
+  margin-top: var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  max-width: 76ch;
+}
+
+/* ---- legend ------------------------------------------------------------ */
+
+.legend {
+  display: flex;
+  gap: var(--s-5);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.swatch {
+  width: 1.125rem;
+  height: 0.6rem;
+  display: inline-block;
+}
+
+.swatch.truth {
+  background: var(--truth);
+}
+.swatch.engine {
+  background: var(--signal);
+}
+.swatch.false-alarm {
+  background: var(--paper-plate);
+  border: 1.5px solid var(--signal);
+}
+.swatch.missed {
+  background: var(--alarm);
+}
+
+/* ---- controls ---------------------------------------------------------- */
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--rule-strong);
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background-color: var(--paper-raised);
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease),
+    color 140ms var(--ease), transform 90ms var(--ease);
+}
+
+.control:hover {
+  background-color: var(--paper-plate);
+  border-color: var(--ink-2);
+}
+
+.control:active {
+  transform: translateY(1px);
+}
+
+.control[aria-pressed="true"] {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* A pressed control still has to answer the pointer, and it must not answer
+   by looking unpressed. It lightens toward the secondary ink instead. */
+.control[aria-pressed="true"]:hover {
+  background-color: var(--ink-2);
+  border-color: var(--ink-2);
+  color: var(--paper);
+}
+
+.control:disabled {
+  color: var(--ink-2);
+  border-color: var(--rule);
+  background-color: transparent;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* ---- detection list ---------------------------------------------------- */
+
+.detections {
+  padding: var(--s-6) var(--s-6) var(--s-8);
+}
+
+.detections h3 {
+  font-family: var(--sans);
+  font-stretch: 108%;
+  font-weight: 600;
+  font-size: var(--t-xl);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--s-4);
+}
+
+.det {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-4) var(--s-4) 0;
+  border-top: 1px solid var(--rule);
+  /* Background alone carries hover and selection here. An indent would have
+     to animate padding, which is a layout property and thrashes. */
+  transition: background-color 120ms var(--ease);
+}
+
+.det:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.det:hover {
+  background-color: var(--paper-raised);
+}
+
+.det[aria-current="true"] {
+  background-color: var(--signal-wash);
+}
+
+.det-title {
+  font-family: var(--sans);
+  font-weight: 560;
+  font-size: var(--t-lg);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.det-meta {
+  margin-top: var(--s-1);
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+.det-z {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Severity is carried by the word's own colour and weight. There is no pill,
+   no dot and no tinted capsule anywhere in this interface. */
+.sev {
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sev.high {
+  color: var(--alarm);
+}
+.sev.medium {
+  color: var(--caution);
+}
+.sev.low {
+  color: var(--ink-2);
+}
+
+/* ---- brief column ------------------------------------------------------ */
+
+.brief {
+  border-left: 1px solid var(--rule-strong);
+  background: var(--paper-raised);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.brief-head {
+  padding: var(--s-5) var(--s-5) var(--s-4);
+  border-bottom: 1px solid var(--rule);
+}
+
+.brief-head h3 {
+  font-family: var(--sans);
+  font-stretch: 108%;
+  font-weight: 620;
+  font-size: var(--t-xl);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: var(--s-2);
+}
+
+.brief-body {
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.brief-section h4 {
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin-bottom: var(--s-2);
+}
+
+.brief-section p {
+  font-size: var(--t-base);
+  line-height: 1.65;
+  max-width: 62ch;
+}
+
+.brief-section.lead p {
+  font-size: var(--t-md);
+  line-height: 1.6;
+}
+
+.brief-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--rule);
+}
+
+.brief-stats div {
+  padding: var(--s-3) var(--s-4) var(--s-3) 0;
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+.brief-stats .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-lg);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.brief-stats .k {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.provenance {
+  margin-top: auto;
+  padding: var(--s-5);
+  border-top: 1px solid var(--rule);
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.provenance code {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink);
+  background: var(--paper-sunk);
+  padding: 1px 5px;
+}
+
+/* ---- empty and loading ------------------------------------------------- */
+
+.empty {
+  padding: var(--s-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  align-items: flex-start;
+}
+
+.empty h3 {
+  font-family: var(--sans);
+  font-stretch: 108%;
+  font-weight: 600;
+  font-size: var(--t-xl);
+  letter-spacing: -0.02em;
+}
+
+.empty p {
+  font-size: var(--t-base);
+  color: var(--ink-2);
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+/* Skeletons take the shape of the thing that is coming, so the layout does
+   not jump when it lands. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--paper-sunk) 0%,
+    var(--rule-faint) 50%,
+    var(--paper-sunk) 100%
+  );
+  background-size: 200% 100%;
+  animation: sweep 1400ms linear infinite;
+}
+
+@keyframes sweep {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---- ledger ------------------------------------------------------------ */
+
+.ledger {
+  overflow-y: auto;
+  padding: var(--s-7) var(--s-6) var(--s-8);
+  grid-column: 1 / -1;
+}
+
+.ledger-inner {
+  max-width: 74rem;
+  margin: 0 auto;
+}
+
+.ledger-lede {
+  font-size: var(--t-md);
+  line-height: 1.6;
+  max-width: 68ch;
+  margin-bottom: var(--s-7);
+  color: var(--ink-2);
+}
+
+.ledger-lede strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.iter {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr) 14rem;
+  gap: var(--s-5);
+  padding: var(--s-5) 0;
+  border-top: 1px solid var(--rule);
+  align-items: start;
+}
+
+.iter:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.iter-n {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-lg);
+  font-weight: 500;
+}
+
+.iter-verdict {
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: var(--s-1);
+}
+
+.iter-verdict.kept {
+  color: var(--signal);
+}
+
+.iter-verdict.reverted {
+  color: var(--alarm);
+}
+
+.iter-verdict.none {
+  color: var(--ink-2);
+}
+
+.iter h4 {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: var(--t-lg);
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  margin-bottom: var(--s-2);
+}
+
+.iter blockquote {
+  font-size: var(--t-base);
+  line-height: 1.6;
+  color: var(--ink-2);
+  border-left: 1px solid var(--rule-strong);
+  padding-left: var(--s-4);
+  max-width: 70ch;
+}
+
+.iter-scores {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.score-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-base);
+}
+
+.score-row .k {
+  font-size: var(--t-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.delta.up {
+  color: var(--signal);
+}
+.delta.down {
+  color: var(--alarm);
+}
+
+/* ==========================================================================
+   Responsive
+
+   Structural, not fluid. Type sizes never shrink; the columns stack instead.
+   ========================================================================== */
+
+@media (max-width: 1400px) {
+  :root {
+    --rail-w: 16.5rem;
+    --brief-w: 24rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .shell {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .brief {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--ink);
+    max-height: 24rem;
+  }
+}
+
+@media (max-width: 860px) {
+  :root {
+    --masthead-h: auto;
+  }
+
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .masthead {
+    flex-wrap: wrap;
+    gap: var(--s-4);
+    padding: var(--s-4);
+  }
+
+  .readouts {
+    width: 100%;
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s-3);
+  }
+
+  .readout:first-child {
+    padding-left: 0;
+  }
+
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .index {
+    border-right: none;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .index-list {
+    max-height: 18rem;
+  }
+
+  .plate-col,
+  .brief {
+    overflow: visible;
+  }
+
+  .brief {
+    max-height: none;
+  }
+
+  .chan-head h2 {
+    font-size: 3.25rem;
+  }
+
+  .plate,
+  .detections,
+  .chan-head {
+    padding-left: var(--s-4);
+    padding-right: var(--s-4);
+  }
+
+  .iter {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
