@@ -830,6 +830,215 @@ section + section {
   font-size: 15px;
 }
 
+/* ------------------------------------------------------------------ hero */
+
+.hero-copy {
+  margin-top: 20px;
+  font-size: clamp(16px, 1.9vw, 18px);
+  color: var(--text-2);
+  max-width: 660px;
+}
+
+.hero-copy strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.hero-copy + .hero-copy {
+  margin-top: 12px;
+}
+
+.ibm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-stretch: 104%;
+}
+
+.ibm-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* -------------------------------------------------------------- stat rail */
+
+.stat-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.stat {
+  padding: 26px 22px;
+}
+
+.stat .value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(30px, 4.4vw, 46px);
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.stat .value .arrow {
+  color: var(--text-3);
+  font-size: 0.55em;
+  margin: 0 8px;
+  vertical-align: middle;
+}
+
+.stat .caption {
+  margin-top: 12px;
+  color: var(--text-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------------------- how it works */
+
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.flow-step {
+  flex: 1 1 0;
+  padding: 20px 18px;
+  min-width: 0;
+}
+
+.flow-step .step-no {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.flow-step h3 {
+  margin-top: 8px;
+  font-size: 16.5px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.flow-step p {
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 20px;
+  flex: 0 0 auto;
+  padding-top: 40px;
+}
+
+.flow-loop {
+  margin-top: 18px;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.flow-loop strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------- ibm */
+
+.ibm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.ibm-card {
+  padding: 24px;
+}
+
+.ibm-card h3 {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.ibm-card p {
+  margin-top: 10px;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.ibm-stats {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.verify {
+  margin-top: 16px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 13px 15px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-2);
+  overflow-x: auto;
+}
+
+.verify .cmd {
+  color: var(--text);
+  display: block;
+  white-space: pre;
+}
+
+.verify .out {
+  color: var(--hit);
+  display: block;
+  margin-top: 4px;
+}
+
+/* --------------------------------------------------------------- credibility */
+
+.credibility {
+  padding: 26px 28px;
+}
+
+.credibility p {
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.65;
+  max-width: 780px;
+}
+
+.credibility p + p {
+  margin-top: 14px;
+}
+
+.credibility p strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
 footer.foot {
   margin-top: 72px;
   border-top: 1px solid var(--line-soft);
@@ -900,6 +1109,15 @@ footer.foot {
   .note h3 {
     min-height: 0;
   }
+
+  .flow {
+    flex-direction: column;
+  }
+
+  .flow-arrow {
+    padding-top: 0;
+    transform: rotate(90deg);
+  }
 }
 
 @media (max-width: 620px) {
@@ -954,6 +1172,32 @@ footer.foot {
     flex: 1 1 100%;
     justify-content: center;
     min-height: 42px;
+  }
+
+  .stat-rail {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .stat {
+    padding: 16px 14px;
+  }
+
+  .stat .value {
+    font-size: 21px;
+    white-space: normal;
+  }
+
+  .stat .caption {
+    font-size: 12.5px;
+    margin-top: 8px;
+  }
+
+  .ibm-card {
+    padding: 18px;
+  }
+
+  .credibility {
+    padding: 20px 18px;
   }
 }
 

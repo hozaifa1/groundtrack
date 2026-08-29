@@ -28,11 +28,11 @@ export const CHAPTERS: Chapter[] = [
     data: "start",
     baseline: null,
     eyebrow: "Where it started",
-    title: "The first detector",
+    title: "IBM Bob's first detector",
     body:
-      "Bob works out what a sensor has been doing lately, then raises an alarm whenever a reading strays about four times further than normal. It catches most real faults, but it also fires constantly.",
+      "IBM Bob wrote both files in engine/ from scratch: a detector that learns how each sensor has been behaving lately, then raises an alarm whenever a reading strays about four times further than that. It catches most real faults. It also raises far more alarms than an operator could act on, and most of them point at nothing.",
     verdict: "start",
-    verdictText: "The baseline version everything else is measured against",
+    verdictText: "The baseline every later round is measured against",
     seconds: 10,
   },
   {
@@ -42,9 +42,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 1",
     title: "Ignore very short alarms",
     body:
-      "Most false alarms lasted only a few readings, so Bob required alarms to last at least twelve readings before counting. The brief false alarms went away, along with real faults that happened to be short.",
+      "Most false alarms lasted ten readings or fewer, and every known real fault ran far longer, so Bob set a floor: an alarm needed twelve readings to count. Short false alarms disappeared. So did several real faults on the hidden recordings, which turned out to be short too, a pattern invisible in the data Bob had to train on.",
     verdict: "dropped",
-    verdictText: "The score fell, so the change was undone",
+    verdictText: "Ruled out: alarm length alone doesn't separate real faults from noise",
     seconds: 10,
   },
   {
@@ -54,9 +54,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 2",
     title: "Raise the threshold slightly",
     body:
-      "Trying another angle, a reading now had to stray four and a half times the usual wander instead of four. That cut false alarms further, though four more real faults slipped past than in the first version.",
+      "False alarms clustered on a few channels, all triggering just above the four-times cutoff. Bob raised the cutoff itself, to four and a half. Some noise dropped, but real faults sit closer to that line than the theory predicted. The detector missed four more real faults than the first version, while cutting less noise than round one already had.",
     verdict: "dropped",
-    verdictText: "The score fell again, and the change was undone",
+    verdictText: "Ruled out: a higher cutoff costs more real faults than it saves in noise",
     seconds: 10,
   },
   {
@@ -65,11 +65,11 @@ export const CHAPTERS: Chapter[] = [
     baseline: null,
     unscored: true,
     eyebrow: "Rounds 3 and 4",
-    title: "Nothing to grade",
+    title: "An audit trail that corrects itself",
     body:
-      "One run timed out before finishing. In the next, someone saved unrelated files into the project folder while the run was going. The grading script assumed Bob had written them and threw away a valid change. Both rounds stay in the record, with a correction note logged under the second.",
+      "Round three ran out of time before it produced anything to grade. Round four looked worse at first: the harness found new files in the project folder and blamed Bob for them, reverting a change it had already paid for. Those files were the operator's, saved into the repo while the run was still going, and had nothing to do with Bob. The ledger records the mistake next to the correction. Bob's actual change from that round was never scored either way.",
     verdict: "none",
-    verdictText: "The detector stayed exactly as it was",
+    verdictText: "No change reached the grader in either round",
     seconds: 9,
   },
   {
@@ -79,9 +79,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 5",
     title: "Compare each section to its recent history",
     body:
-      "Bob measured variance across a moving window, comparing each stretch to its recent behavior so calm passages were judged against calm baselines. The detector found one more real fault than the first version, but nearly doubled the number of alarms.",
+      "A handful of channels were driving most of the false alarms, each judged against one number for what counts as normal across the whole recording. Bob's fix: judge each stretch against its own recent history instead. Quiet periods got a tighter bar, and the detector caught one more real fault than the first version. But when a channel sat still for a while, its recent history looked calm too, and the bar fell with it. Total alarms across all recordings nearly doubled.",
     verdict: "dropped",
-    verdictText: "Score fell on evaluation. The change was undone",
+    verdictText: "Ruled out: local history helps until the history itself goes quiet",
     seconds: 10,
   },
   {
@@ -91,9 +91,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 6",
     title: "Raise the threshold and merge nearby bursts",
     body:
-      "Bob combined two adjustments. Readings had to stray six times the usual wander. Because real faults trigger in intermittent bursts with calm gaps, bursts within 150 readings of each other were merged into a single event. Together, these changes cut total alarms down by a factor of six.",
+      "This time two changes moved together. Bob raised the cutoff to six times normal wander, high enough that ordinary variation almost never crosses it. Alone, that would have shattered real faults into scattered fragments, since a real anomaly rarely stays above six the whole way through. So Bob also widened the merge window: bursts within 150 readings of each other now count as one event. Real faults reassemble into a single alarm. Noise mostly disappears. Total alarms fell from 506 to 78, and the score more than doubled on recordings Bob had never seen.",
     verdict: "kept",
-    verdictText: "Score rose. This change was kept",
+    verdictText: "Kept: the cutoff and the merge window solve two halves of one problem",
     seconds: 13,
   },
   {
@@ -103,9 +103,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 7",
     title: "Judge by cumulative drift across the window",
     body:
-      "Bob adjusted the detector to sum total drift across the entire window. This caught gradual drift, though it missed brief spikes. The approach produced the highest score on the training recordings, but score fell on the hidden test set, so the harness rejected it.",
+      "The kept detector still missed slow, moderate drifts that never spike past six times normal wander. Bob tried scoring the total drift added up across a window instead of its single highest point. On the recordings Bob could see, this was the best score yet. On the twenty-six it had never seen, the same rule fired too often and the score fell. The harness kept round six instead.",
     verdict: "dropped",
-    verdictText: "Score rose on training recordings and fell on the hidden set",
+    verdictText: "Rejected: the best score yet on visible data, but it didn't hold on the hidden set",
     seconds: 13,
   },
   {
@@ -114,11 +114,11 @@ export const CHAPTERS: Chapter[] = [
     baseline: "start",
     ghost: "start",
     eyebrow: "Where it ended",
-    title: "78 alarms, down from 506",
+    title: "78 alarms, and most of them real",
     body:
-      "Out of seven attempts, only one change was kept. Across all 81 recordings the detector raised 78 alarms, down from 506. On this recording it raised a single alarm covering both real faults. The alarm spans most of the recording, which counts as a detection here while offering operators limited precision on where to look.",
+      "Seven attempts went to the grader. One survived. Across all 81 recordings, IBM Bob's final detector cut alarms from 506 to 78. On the 26 recordings it never trained on, false alarms fell from 128 to 7, and the score rose from 0.266 to 0.623. Roughly three in four alarms now point at something real, up from about one in six at the start. On this recording, both faults sit inside a single alarm, though that alarm spans most of the timeline.",
     verdict: "final",
-    verdictText: "Both faults on this recording fall inside one alarm",
+    verdictText: "One round in seven became the detector that shipped",
     seconds: 15,
   },
 ];

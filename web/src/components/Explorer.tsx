@@ -20,10 +20,13 @@ const PATTERN: Record<string, string> = {
   unclassified: "The shape of this one does not match any of the patterns",
 };
 
+/** Said so the rating carries its own source. On first read "Rated moderate"
+ *  left the reader asking who rated it, and the answer arrived a paragraph
+ *  too late. */
 const URGENCY: Record<string, string> = {
-  high: "Rated urgent",
-  medium: "Rated moderate",
-  low: "Rated minor",
+  high: "The detector rates it urgent",
+  medium: "The detector rates it moderate",
+  low: "The detector rates it minor",
 };
 
 export function Explorer({ channels, initial, briefs }: Props) {
@@ -134,7 +137,7 @@ export function Explorer({ channels, initial, briefs }: Props) {
                   <span className="num">{fmtInt.format(selected.end)}</span> out of{" "}
                   <span className="num">{fmtInt.format(detail.n)}</span>, so{" "}
                   <span className="num">{fmtInt.format(selected.length)}</span> readings long.{" "}
-                  {URGENCY[selected.severity] ?? "Not rated"}.{" "}
+                  {URGENCY[selected.severity] ?? "The detector did not rate it"}.{" "}
                   {selected.hit ? "A real fault sits under it." : "Nothing was there."}
                 </p>
                 <p className="fine">
@@ -149,7 +152,9 @@ export function Explorer({ channels, initial, briefs }: Props) {
                     What follows is the write-up exactly as a small language model produced it on
                     the computer that built this page, one for each of the {briefs} alarms. It
                     says transient spike when a reading jumps and comes back. Where it says sigma,
-                    one sigma is the sensor's usual amount of wobble, so 24 sigma is far outside it.
+                    one sigma is the sensor's usual amount of wobble, so a reading many sigma out
+                    is far outside anything that sensor normally does. Robust sigma means the same
+                    thing measured so a few wild readings cannot skew it.
                   </p>
                   <div className="brief">
                     <div>

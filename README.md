@@ -1,10 +1,10 @@
 # Groundtrack
 
-**IBM Bob writes the spacecraft anomaly detector. A fixed benchmark decides whether it was any good.**
+**IBM Bob writes the spacecraft anomaly detector. A grader it cannot reach decides whether the work was any good.**
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) (August theme: *Advance Space Exploration with AI*).
 
-> **Status: in active development (Day 6 of 9).** Bob has authored every line of the engine. It scores **holdout F1 0.623** (precision 0.731, recall 0.543) across 26 held-out channels, up from an iteration-0 baseline of 0.266, and crashes on none of the 81. Seven forge iterations have run: one was kept and the gate reverted or discarded the rest. Score work has now been **stopped on evidence**: in the search space, dev F1 and held-out F1 turn out to be uncorrelated ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections** the engine emits; they regenerate byte-for-byte. A static [console](#the-console) reads all of it back: the telemetry, the labelled anomalies, the engine's calls, the briefs, the ledger, and iteration 0 re-executed out of git for comparison.
+> **Result.** IBM Bob wrote every line of the detector. Measured on 26 recordings Bob never saw, it takes the benchmark score from **0.266 to 0.623** and cuts false alarms from **128 to 7**, so roughly three in four alarms are now real where before it was one in six. It runs all 81 recordings without crashing. Eight versions exist: the baseline plus seven revisions, of which the fixed grader accepted one and rejected the rest, which is the guardrail doing its job. Optimisation was then **stopped on evidence**: across the search space, the score on data Bob could see turns out to be uncorrelated with the score on data it could not ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections**; they regenerate byte for byte. A static [console](#the-console) reads all of it back.
 
 ---
 
@@ -54,11 +54,11 @@ Bob operates as a **development-time** tool and never runs in a runtime request 
 | `engine/` | Every file, authored and re-authored by Bob |
 | `results/ledger.jsonl` | Every iteration recorded: `task_id`, cost, turns, score before/after, kept or reverted |
 
-Bobcoin spend is capped per call and tracked per iteration. The ledger logs failed experiments as failures without dropping runs. For instance, the very first ledger entry records a run that hit its cost cap and produced no code.
+Bobcoin spend is capped per call and tracked per iteration, and **12.2 of the 40 available coins** produced the shipped engine. The ledger records every run, including the ones that cost money and returned nothing: the very first entry is a run that hit its cost cap before writing any code.
 
-## What the loop has actually done
+## What the loop did, round by round
 
-Seven live iterations ran after the baseline: one was kept, four were reverted by the gate, one was discarded unscored, and one was aborted. The ledger records all of them, including the two that cost coins and produced no code:
+Seven live iterations ran after the baseline. The gate kept one, reverted four, discarded one unscored and lost one to an abort. Every round is in the ledger, including the two that cost coins and produced no code. A rejected round is a hypothesis eliminated at a known price, and it is recorded as such:
 
 | # | Bob's change | dev F1 | holdout F1 | Verdict |
 |---|---|---|---|---|
@@ -71,15 +71,17 @@ Seven live iterations ran after the baseline: one was kept, four were reverted b
 
 Iteration 1 shows the dynamic clearly. Bob's edit **improved the score on the data Bob could see** and hurt the held-out score (the exact failure the split exists to catch). Bob reported it accurately without prompting: *"recall fell too much on holdout channels whose true positives happen to be short windows not visible in the dev failure report."*
 
-Iterations 1 and 2 fail the same way, trading recall for precision roughly one for one. Iteration 5 fails in reverse: a locally estimated scale collapses in flat stretches, so recall rose on both splits while false alarms more than doubled.
+Iterations 1 and 2 come apart the same way, trading recall for precision roughly one for one. Iteration 5 comes apart in reverse: a locally estimated scale collapses in flat stretches, so recall rose on both splits while false alarms more than doubled.
 
-Iteration 6 explains why earlier attempts failed. The two constants **interact**, and one-at-a-time search cannot find the pair. Setting 6σ alone loses recall because a real anomaly crosses the threshold in several short bursts, and a 150-sample merge gap reconstitutes those bursts into the single event they physically represent. Together they take holdout precision from 0.163 to 0.731 (128 false positives down to 7). Fewer windows result, each consolidating bursts the old merge gap left scattered.
+Iteration 6 explains why the earlier attempts could not have worked. The two constants **interact**, and one-at-a-time search cannot find the pair. Setting 6σ alone loses recall because a real anomaly crosses the threshold in several short bursts, and a 150-sample merge gap reconstitutes those bursts into the single event they physically represent. Together they take holdout precision from 0.163 to 0.731 (128 false positives down to 7). Fewer windows result, each consolidating bursts the old merge gap left scattered.
 
-The clearest effect of that iteration shows up in the operator's inbox. Run the committed engine over all 81 channels and it emits **78 windows on 48 channels**. Run the iteration-0 baseline over the same 81 channels and it emits **506 windows on 60 channels**: one sixth as many items to triage. On the 26 held-out channels (a separate population from that count), precision went from 0.163 to 0.731 over the same change. That is the entire brief set: 78 detections, 78 Granite briefs, without curation. At 506, showing all of them would be impossible, and selecting a subset would decide which failures the reader sees.
+The clearest effect of that iteration shows up in the operator's inbox. Run the committed engine over all 81 channels and it emits **78 windows on 48 channels**. Run the iteration-0 baseline over the same 81 channels and it emits **506 windows on 60 channels**: one sixth as many items to triage. On the 26 held-out channels (a separate population from that count), precision went from 0.163 to 0.731 over the same change. That is the entire brief set: 78 detections, 78 Granite briefs, without curation. At 506, showing all of them would be impossible, and selecting a subset would decide which detections the reader sees.
 
 The change did not reduce total flagged telemetry. Averaged over all 81 channels, the flagged share went **up**, 13.2% → 15.8%. Windows became longer (mean 120 → 968 samples, median 26 → 134), as a 150-sample merge gap joins bursts that a 50-sample gap left separate. The engine gained consolidation and precision while flagging slightly more total volume.
 
 This consolidation has a drawback: **9 of the 78 windows cover more than half their channel, seven of them upwards of 99%**, compared to 4 of 506 at the baseline. A window spanning an entire channel tells an operator very little, yet still scores as a true positive whenever a labelled anomaly falls inside it. This is the metric loophole documented in [`docs/parameter-search.md`](docs/parameter-search.md) appearing in the committed engine. It is smaller than the degenerate configurations rejected during the search, but remains non-zero.
+
+The obvious question is whether the headline result leans on that loophole, and it does not. Re-score the held-out channels with every window covering more than half its channel deleted and the engine finds **17 of 35** labelled faults instead of 19, at **7 false positives either way**, for holdout F1 **0.576** against 0.623 with them kept. The wide windows are not hiding false positives, and the trimmed score still sits well above the 0.266 baseline. Reproduce it with [`tools/robustness_check.py`](tools/robustness_check.py), which reads the same exported detections the console draws and reproduces the committed score exactly when nothing is dropped.
 
 An offline dev-split search found that parameter pair, as documented in [`docs/parameter-search.md`](docs/parameter-search.md), including how the sweep first scored **dev F1 0.807** by emitting a single 1668-sample window per channel covering 39% of the telemetry. The metric is gameable, the scorer is fixed, and that shortcut was explicitly rejected in the design notes.
 
@@ -101,7 +103,7 @@ The cost cap was set to 3 Bobcoins after Day 2 measurements showed that runs hit
 
 - 81 channels · 105 expert-labelled anomaly sequences · 62 point, 43 contextual
   (`labeled_anomalies.csv` has 82 rows, but `P-2` is listed twice with identical spacecraft and length, so 81 distinct channels have telemetry)
-- Split deterministically by channel-id hash into **56 dev / 26 holdout** channels (**70 / 35** labelled windows)
+- Split deterministically by channel-id hash into **56 dev / 26 holdout** channels (**70 / 35** labelled windows), which is what `tools/score.py --json` reports. Both `P-2` rows land in `dev`, so the split covers **55 distinct dev recordings**, and that is the figure the console shows.
 - Bob sees failures from `dev` only. `holdout` decides whether an iteration is kept.
 
 Source: [khundman/telemanom](https://github.com/khundman/telemanom) · Hundman et al., *Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding*, KDD 2018.

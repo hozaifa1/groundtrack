@@ -29,6 +29,8 @@ change it.
 | `tools/test_score.py` | Outside the loop | Tests for the ruler. |
 | `tools/fetch_data.py` | Outside the loop | Benchmark download. |
 | `tools/forge_loop.py` | Outside the loop | The harness that invokes you. |
+| `tools/robustness_check.py` | Outside the loop | Re-scores with the widest windows dropped. Never modify. |
+| `tools/audit_console_numbers.py` | Outside the loop | Checks every number the console prints against the data. |
 | `data/` | Nobody | Immutable benchmark. Never edit or regenerate. |
 | `results/` | Harness | Append-only ledger. Never hand-edit. |
 

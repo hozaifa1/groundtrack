@@ -90,6 +90,9 @@ export interface LedgerRow {
   attempt: number | null;
   task_id: string | null;
   cost: number | null;
+  /** The cap the run was launched under. Stands in for `cost` when a run was
+   *  killed from outside and returned nothing, since IBM bills it anyway. */
+  max_cost?: number | null;
   tool_calls?: number | null;
   f1_before: number | null;
   f1_after: number | null;

@@ -219,9 +219,9 @@ export function Walkthrough({ data, channel, recordings, hidden }: Props) {
             </div>
 
             <div className="readout-group">
-              <h4>Marked on the {hidden} recordings Bob never saw</h4>
+              <h4>Measured on the {hidden} recordings Bob never saw</h4>
               {chapter.unscored ? (
-                <p className="empty">Nothing was graded in these two rounds.</p>
+                <p className="empty">Neither round reached the grader.</p>
               ) : (
                 <>
                   <div className="readout">
