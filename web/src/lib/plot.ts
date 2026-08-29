@@ -9,7 +9,7 @@
  */
 
 export interface Envelope {
-  /** Flat triples of [sampleIndex, low, high], one per pixel column. */
+  /** Flat quads of [sampleIndex, low, high, middle], one per pixel column. */
   cols: Float64Array;
   n: number;
   /** True when the domain is zoomed in far enough that every sample owns more
@@ -27,30 +27,40 @@ export function envelope(values: number[], d0: number, d1: number, innerW: numbe
 
   if (sparse) {
     const n = span + 1;
-    const cols = new Float64Array(n * 3);
+    const cols = new Float64Array(n * 4);
     for (let k = 0; k < n; k++) {
       const v = values[lo + k];
-      cols[k * 3] = lo + k;
-      cols[k * 3 + 1] = v;
-      cols[k * 3 + 2] = v;
+      cols[k * 4] = lo + k;
+      cols[k * 4 + 1] = v;
+      cols[k * 4 + 2] = v;
+      cols[k * 4 + 3] = v;
     }
     return { cols, n, sparse };
   }
 
-  const cols = new Float64Array(iw * 3);
+  const cols = new Float64Array(iw * 4);
   for (let k = 0; k < iw; k++) {
     const a = lo + Math.floor((k * span) / iw);
     const b = lo + Math.floor(((k + 1) * span) / iw);
     let mn = Infinity;
     let mx = -Infinity;
+    let sum = 0;
+    let count = 0;
     for (let i = a; i <= Math.max(a, b - 1); i++) {
       const v = values[i];
       if (v < mn) mn = v;
       if (v > mx) mx = v;
+      sum += v;
+      count++;
     }
-    cols[k * 3] = a;
-    cols[k * 3 + 1] = mn;
-    cols[k * 3 + 2] = mx;
+    cols[k * 4] = a;
+    cols[k * 4 + 1] = mn;
+    cols[k * 4 + 2] = mx;
+    // The middle of the column, drawn as the line. A channel that swings
+    // between two states ten times per pixel is a solid block of ink if only
+    // the envelope is drawn; the mean gives the eye something to follow
+    // through it, and the envelope behind it keeps the full range visible.
+    cols[k * 4 + 3] = count ? sum / count : mn;
   }
   return { cols, n: iw, sparse };
 }
@@ -64,23 +74,25 @@ export function areaPath(env: Envelope, xOf: Scale, yOf: Scale): string {
   const parts: string[] = [];
   for (let k = 0; k < n; k++) {
     parts.push(
-      `${k === 0 ? "M" : "L"}${xOf(cols[k * 3]).toFixed(1)},${yOf(cols[k * 3 + 2]).toFixed(1)}`,
+      `${k === 0 ? "M" : "L"}${xOf(cols[k * 4]).toFixed(1)},${yOf(cols[k * 4 + 2]).toFixed(1)}`,
     );
   }
   for (let k = n - 1; k >= 0; k--) {
-    parts.push(`L${xOf(cols[k * 3]).toFixed(1)},${yOf(cols[k * 3 + 1]).toFixed(1)}`);
+    parts.push(`L${xOf(cols[k * 4]).toFixed(1)},${yOf(cols[k * 4 + 1]).toFixed(1)}`);
   }
   parts.push("Z");
   return parts.join("");
 }
 
+/** The line through the middle of the envelope, or the samples themselves when
+ *  the plot is zoomed in far enough for the envelope to have no thickness. */
 export function linePath(env: Envelope, xOf: Scale, yOf: Scale): string {
   const { cols, n } = env;
   if (n === 0) return "";
   const parts: string[] = [];
   for (let k = 0; k < n; k++) {
     parts.push(
-      `${k === 0 ? "M" : "L"}${xOf(cols[k * 3]).toFixed(1)},${yOf(cols[k * 3 + 1]).toFixed(1)}`,
+      `${k === 0 ? "M" : "L"}${xOf(cols[k * 4]).toFixed(1)},${yOf(cols[k * 4 + 3]).toFixed(1)}`,
     );
   }
   return parts.join("");

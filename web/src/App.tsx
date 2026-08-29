@@ -1,386 +1,162 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowCounterClockwise, ArrowsOutSimple } from "@phosphor-icons/react";
-import { ChannelIndex } from "./components/ChannelIndex";
-import { BriefPane } from "./components/BriefPane";
-import { Ledger } from "./components/Ledger";
-import { TracePlate } from "./components/TracePlate";
-import { useAnimatedDomain, useWidth } from "./lib/hooks";
-import { fmtInt } from "./lib/plot";
+import { useEffect, useState } from "react";
 import type { ChannelDetail, Manifest } from "./types";
-
-type View = "console" | "loop";
-
-/** Each plate measures its own figure box. Sizing one plot from another
- *  element's width couples two layouts that are free to differ. */
-function Figure({ children }: { children: (w: number) => React.ReactNode }) {
-  const [ref, w] = useWidth<HTMLDivElement>();
-  return (
-    <div className="plate-figure" ref={ref}>
-      {children(w)}
-    </div>
-  );
-}
+import { Walkthrough } from "./components/Walkthrough";
+import { Explorer } from "./components/Explorer";
+import { fmtInt } from "./lib/plot";
 
 export default function App() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [view, setView] = useState<View>("console");
-
-  const [channelId, setChannelId] = useState<string>("");
-  const [detail, setDetail] = useState<ChannelDetail | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [compare, setCompare] = useState(false);
-  const [query, setQuery] = useState("");
+  const [showcase, setShowcase] = useState<ChannelDetail | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    fetch("data/manifest.json")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`manifest ${r.status}`))))
-      .then((m: Manifest) => {
-        setManifest(m);
-        // Open on the channel that argues for itself, chosen by criteria
-        // rather than by name so it stays the right channel if the engine
-        // changes: held out, so it is data the engine was never tuned on;
-        // full recall, so the engine is not being flattered; and the widest
-        // gap against iteration 0, because that gap is what the forge loop
-        // bought and it is legible in a single glance at the rails.
-        const best = [...m.channels]
-          .filter((c) => c.split === "holdout" && c.detections > 0 && c.truth > 0)
-          .sort(
-            (a, b) =>
-              Number(b.caught === b.truth) - Number(a.caught === a.truth) ||
-              b.baseline_detections - b.detections - (a.baseline_detections - a.detections),
-          )[0];
-        setChannelId(best?.id ?? m.channels[0].id);
-      })
-      .catch((e) => setError(String(e)));
-  }, []);
-
-  useEffect(() => {
-    if (!channelId) return;
     let live = true;
-    setLoadingDetail(true);
-    setSelectedId(null);
-    fetch(`data/channel/${channelId}.json`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`channel ${r.status}`))))
-      .then((d: ChannelDetail) => {
+    fetch("data/manifest.json")
+      .then((r) => r.json())
+      .then((m: Manifest) => {
         if (!live) return;
-        setDetail(d);
-        setLoadingDetail(false);
+        setManifest(m);
+        return fetch(`data/channel/${m.walkthrough.showcase.channel}.json`)
+          .then((r) => r.json())
+          .then((c: ChannelDetail) => live && setShowcase(c));
       })
-      .catch((e) => {
-        if (!live) return;
-        setError(String(e));
-        setLoadingDetail(false);
-      });
+      .catch(() => live && setFailed(true));
     return () => {
       live = false;
     };
-  }, [channelId]);
+  }, []);
 
-  const selected = useMemo(
-    () => detail?.detections.find((d) => d.id === selectedId) ?? null,
-    [detail, selectedId],
+  if (failed) {
+    return (
+      <main className="shell">
+        <p className="loading">The data files did not load. Reloading the page usually fixes it.</p>
+      </main>
+    );
+  }
+
+  if (!manifest || !showcase) {
+    return (
+      <main className="shell">
+        <p className="loading">Loading the recordings.</p>
+      </main>
+    );
+  }
+
+  const kept = manifest.walkthrough.steps.find((s) => s.key === "round6")!;
+  const first = manifest.walkthrough.steps.find((s) => s.key === "start")!;
+  // The round that found the most real faults on the hidden recordings, used
+  // below to say what finding more of them actually cost.
+  const greediest = manifest.walkthrough.steps.reduce((best, s) =>
+    s.holdout.tp > best.holdout.tp ? s : best,
   );
-
-  // Opening a detection travels the x-domain to that window plus context on
-  // each side, so the window keeps its place in the pass instead of becoming
-  // an unanchored close-up.
-  const targetDomain = useMemo<[number, number]>(() => {
-    if (!detail) return [0, 1];
-    if (!selected) return [0, detail.n - 1];
-    const pad = Math.max(120, selected.length * 1.6);
-    return [Math.max(0, selected.start - pad), Math.min(detail.n - 1, selected.end + pad)];
-  }, [detail, selected]);
-
-  const domain = useAnimatedDomain(targetDomain);
-
-  const onSelect = useCallback((id: string | null) => setSelectedId(id), []);
-
-  if (error) {
-    return (
-      <div className="empty" style={{ padding: "var(--s-8)" }}>
-        <h3>The console could not load its data</h3>
-        <p>
-          {error}. The console reads static JSON from <code>public/data</code>. Regenerate it with{" "}
-          <code>python tools/export_console.py</code> and reload.
-        </p>
-      </div>
-    );
-  }
-
-  if (!manifest) {
-    return (
-      <div className="app">
-        <header className="masthead">
-          <div className="wordmark">
-            <h1>Groundtrack</h1>
-          </div>
-        </header>
-        <div className="shell">
-          <div className="index" />
-          <div className="plate-col" style={{ padding: "var(--s-6)" }}>
-            <div className="skeleton" style={{ height: 88, marginBottom: "var(--s-5)" }} />
-            <div className="skeleton" style={{ height: 320 }} />
-          </div>
-          <div className="brief" />
-        </div>
-      </div>
-    );
-  }
-
-  const summary = manifest.channels.find((c) => c.id === channelId);
-  const hold = manifest.splits.holdout;
-  const ship = manifest.totals.shipped;
-  const base = manifest.totals.baseline;
+  const hidden = manifest.splits.holdout.channels;
+  const seen = manifest.splits.dev.channels;
 
   return (
-    <div className="app">
+    <main className="shell">
       <header className="masthead">
-        <div className="wordmark">
-          <h1>Groundtrack</h1>
-          <p>
-            IBM Bob wrote the detector. A fixed benchmark it cannot reach decides whether it was any
-            good.
-          </p>
-        </div>
-
-        <div className="readouts">
-          <div className="readout">
-            <span className="v">{hold.f1.toFixed(3)}</span>
-            <span className="k">Held-out F1</span>
-          </div>
-          <div className="readout">
-            <span className="v">{ship.windows}</span>
-            <span className="k">Detections</span>
-          </div>
-          <div className="readout">
-            <span className="v">{manifest.totals.briefs}</span>
-            <span className="k">Granite briefs</span>
-          </div>
-        </div>
-
-        <div className="viewswitch" role="group" aria-label="View">
-          <button aria-pressed={view === "console"} onClick={() => setView("console")}>
-            Console
-          </button>
-          <button aria-pressed={view === "loop"} onClick={() => setView("loop")}>
-            The loop
-          </button>
-        </div>
+        <span className="wordmark">Groundtrack</span>
+        <p>Fault detection for spacecraft sensor data, written by an AI agent</p>
       </header>
 
-      <div className="shell">
-        {view === "loop" ? (
-          <Ledger manifest={manifest} />
-        ) : (
-          <>
-            <ChannelIndex
-              channels={manifest.channels}
-              current={channelId}
-              query={query}
-              onQuery={setQuery}
-              onPick={setChannelId}
-            />
+      <section className="lede">
+        <h1>An agent wrote a fault detector, then tried seven times to improve it.</h1>
+        <p>
+          The detector reads sensor recordings from two NASA missions and raises an alarm when
+          something looks wrong. An AI agent called Bob wrote it, then tried seven times to make it
+          better. Engineers had already marked the real faults in those recordings, and a grading
+          script Bob was never allowed to edit used them to check each attempt. Anything that did
+          not score better was undone straight away. One attempt out of the seven survived. It took
+          the number of alarms from <strong>{fmtInt.format(first.alarms)}</strong> down to{" "}
+          <strong>{fmtInt.format(kept.alarms)}</strong>, and it also finds fewer of the real faults
+          than the first version did. Here is every round, in order.
+        </p>
+      </section>
 
-            <main className="plate-col">
-              <div className="chan-head">
-                <h2>{channelId}</h2>
-                <div className="chan-facts">
-                  <div className="fact">
-                    <span className="v">{summary?.spacecraft}</span>
-                    <span className="k">Spacecraft</span>
-                  </div>
-                  <div className="fact">
-                    <span className="v">
-                      {summary?.split === "holdout" ? "Held out" : "Dev"}
-                    </span>
-                    <span className="k">Split</span>
-                  </div>
-                  <div className="fact">
-                    <span className="v">{fmtInt.format(summary?.n ?? 0)}</span>
-                    <span className="k">Samples</span>
-                  </div>
-                  <div className="fact">
-                    <span className="v">
-                      {summary?.caught} of {summary?.truth}
-                    </span>
-                    <span className="k">Labelled anomalies caught</span>
-                  </div>
-                </div>
-              </div>
+      <section aria-label="The seven rounds, step by step">
+        <p className="cue">
+          The eight steps below play by themselves, one after another. Pause at any point, or step
+          back and forward yourself.
+        </p>
+        <Walkthrough
+          data={manifest.walkthrough}
+          channel={showcase}
+          recordings={manifest.totals.channels}
+          hidden={hidden}
+        />
+        <p className="chart-note">
+          {seen} of the {manifest.totals.channels} recordings were open to the agent. The other{" "}
+          {hidden} were kept hidden, and those are the ones that decided whether a change survived.
+          The score balances two things: how many of the real faults were found, and how many of
+          the alarms were real. One would be perfect.
+        </p>
+      </section>
 
-              {loadingDetail || !detail ? (
-                <div className="plate">
-                  <div className="skeleton" style={{ height: 400 }} />
-                </div>
-              ) : (
-                <>
-                  <section className="plate">
-                    <div className="plate-head">
-                      <h3>Telemetry and what the engine called</h3>
-                      <div className="legend">
-                        <span>
-                          <i className="swatch truth" /> labelled
-                        </span>
-                        <span>
-                          <i className="swatch missed" /> missed
-                        </span>
-                        <span>
-                          <i className="swatch engine" /> detection
-                        </span>
-                        <span>
-                          <i className="swatch false-alarm" /> false alarm
-                        </span>
-                      </div>
-                    </div>
+      <section aria-label="Look at any recording">
+        <div className="section-head">
+          <h2>Look at any of the {manifest.totals.channels} recordings</h2>
+          <p>
+            The same picture for every recording in the benchmark, including the ones where the
+            detector missed a fault or raised an alarm over nothing.
+          </p>
+        </div>
+        <Explorer channels={manifest.channels} initial={showcase} briefs={manifest.totals.briefs} />
+      </section>
 
-                    <Figure>
-                      {(w) => (
-                        <TracePlate
-                          values={detail.values}
-                          n={detail.n}
-                          domain={domain}
-                          height={260}
-                          truth={detail.truth}
-                          detections={detail.detections}
-                          baseline={compare ? detail.baseline : null}
-                          selectedId={selectedId}
-                          onSelect={onSelect}
-                          yLabel="Value"
-                          width={w}
-                        />
-                      )}
-                    </Figure>
+      <section aria-label="What this does not show">
+        <div className="section-head">
+          <h2>What the numbers leave out</h2>
+        </div>
+        <div className="notes">
+          <div className="panel note">
+            <h3>Some alarms are far too wide</h3>
+            <p>
+              {manifest.totals.wide.over_half} of the {kept.alarms} alarms cover more than half of
+              their recording, and {manifest.totals.wide.almost_all} of those cover almost all of
+              it. The grading counts them as correct, because a real fault
+              falls somewhere inside. An operator reading one would still have to search the whole
+              recording.
+            </p>
+          </div>
+          <div className="panel note">
+            <h3>Fewer alarms, more data under suspicion</h3>
+            <p>
+              The change that survived did not narrow what the detector is suspicious of. It joined
+              scattered bursts into single events, so the share of readings sitting inside an alarm
+              went up, from{" "}
+              {(first.flagged_share * 100).toFixed(1)}% to {(kept.flagged_share * 100).toFixed(1)}%.
+            </p>
+          </div>
+          <div className="panel note">
+            <h3>Half the faults are still missed</h3>
+            <p>
+              On the hidden recordings the detector finds {kept.holdout.tp} of the{" "}
+              {kept.holdout.tp + kept.holdout.fn} marked faults. The round that found the most,{" "}
+              {greediest.holdout.tp}, raised {greediest.holdout.fp} alarms over nothing on those
+              same recordings against the {kept.holdout.fp} this one raises. That is why the
+              grading turned it down.
+            </p>
+          </div>
+        </div>
+        <p className="chart-note" style={{ marginTop: 18 }}>
+          Every figure on this page is recomputed. The pictures of the earlier versions are not
+          drawings of what was written down at the time: each one is that version of the detector
+          run again over the recordings, and the page will not build unless it scores exactly what
+          the record says it scored.
+        </p>
+      </section>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "var(--s-3)",
-                        marginTop: "var(--s-4)",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button
-                        className="control"
-                        aria-pressed={compare}
-                        onClick={() => setCompare((v) => !v)}
-                      >
-                        <ArrowsOutSimple size={18} weight="bold" aria-hidden="true" />
-                        Compare with iteration 0
-                      </button>
-                      <button className="control" disabled={!selected} onClick={() => setSelectedId(null)}>
-                        <ArrowCounterClockwise size={18} weight="bold" aria-hidden="true" />
-                        Show the whole pass
-                      </button>
-                    </div>
-
-                    <p className="caption">
-                      {compare ? (
-                        <>
-                          The third rail is Bob's iteration-0 detector, executed from git at commit{" "}
-                          <code>{manifest.engine.baseline_commit}</code>: {base.windows} windows
-                          across the benchmark against {ship.windows} today. On this channel it
-                          raised {detail.baseline.length} against {detail.detections.length}. The
-                          shipped engine flags {(100 * ship.flagged) / ship.samples > 0 ? ((100 * ship.flagged) / ship.samples).toFixed(1) : "0"}%
-                          of all samples and iteration 0 flagged{" "}
-                          {((100 * base.flagged) / base.samples).toFixed(1)}%, so the loop did not
-                          make the engine quieter about telemetry. It made it quieter about
-                          incidents.
-                        </>
-                      ) : (
-                        <>
-                          Detection runs on telemetry alone. The labelled row is drawn for
-                          comparison only; the engine never reads it, which is what makes the score
-                          above mean anything.
-                        </>
-                      )}
-                    </p>
-                  </section>
-
-                  <section className="plate">
-                    <div className="plate-head">
-                      <h3>Why it fired</h3>
-                      <span className="label">
-                        {manifest.engine.shipped.threshold.toFixed(1)} sigma, merge gap{" "}
-                        {manifest.engine.shipped.merge_gap}
-                      </span>
-                    </div>
-                    <Figure>
-                      {(w) => (
-                        <TracePlate
-                          values={detail.z}
-                          n={detail.n}
-                          domain={domain}
-                          height={150}
-                          truth={[]}
-                          detections={detail.detections}
-                          baseline={null}
-                          selectedId={selectedId}
-                          onSelect={onSelect}
-                          threshold={manifest.engine.shipped.threshold}
-                          yLabel="Deviation"
-                          width={w}
-                        />
-                      )}
-                    </Figure>
-                    <p className="caption">
-                      Absolute residual against a rolling median, scaled by its own median absolute
-                      deviation. Everything above the dashed rule is flagged; runs closer together
-                      than {manifest.engine.shipped.merge_gap} samples are merged into one window,
-                      and merged windows shorter than {manifest.engine.shipped.min_window} samples
-                      are dropped.
-                    </p>
-                  </section>
-
-                  <section className="detections">
-                    <h3>
-                      {detail.detections.length === 0
-                        ? "No detections on this channel"
-                        : `${detail.detections.length} detection${detail.detections.length === 1 ? "" : "s"}`}
-                    </h3>
-
-                    {detail.detections.length === 0 ? (
-                      <p style={{ color: "var(--ink-2)", maxWidth: "62ch" }}>
-                        The engine stayed quiet here.{" "}
-                        {detail.truth.length > 0
-                          ? `The benchmark labels ${detail.truth.length} anomaly window${detail.truth.length === 1 ? "" : "s"} on this channel, so this silence is a miss, and it counts against the recall in the masthead.`
-                          : "The benchmark labels no anomalies on this channel either, so silence is the right answer."}
-                      </p>
-                    ) : (
-                      detail.detections.map((d) => (
-                        <button
-                          key={d.id}
-                          className="det"
-                          aria-current={d.id === selectedId}
-                          onClick={() => setSelectedId(d.id === selectedId ? null : d.id)}
-                        >
-                          <span>
-                            <span className="det-title">{d.title}</span>
-                            <span className="det-meta">
-                              samples {fmtInt.format(d.start)} to {fmtInt.format(d.end)},{" "}
-                              {fmtInt.format(d.length)} long &nbsp;{" "}
-                              <span className={`sev ${d.severity}`}>{d.severity}</span>
-                              {!d.hit ? " · no labelled anomaly here" : ""}
-                            </span>
-                          </span>
-                          <span className="det-z">{d.z_peak.toFixed(1)}&#8201;&#963;</span>
-                        </button>
-                      ))
-                    )}
-                  </section>
-                </>
-              )}
-            </main>
-
-            <BriefPane
-              channel={detail}
-              detection={selected}
-              briefCount={manifest.totals.briefs}
-            />
-          </>
-        )}
-      </div>
-    </div>
+      <footer className="foot">
+        <span>
+          Recordings from two NASA missions, with the faults marked by the engineers who published
+          them: SMAP, a satellite that measures soil moisture from orbit, and MSL, the Curiosity
+          rover on Mars.
+        </span>
+        <span className="num">
+          {manifest.totals.channels} recordings, one write-up for each of the{" "}
+          {manifest.totals.briefs} alarms
+        </span>
+      </footer>
+    </main>
   );
 }

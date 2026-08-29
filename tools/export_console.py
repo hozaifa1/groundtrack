@@ -271,6 +271,87 @@ def describe(df: pd.DataFrame, values: np.ndarray, residual_z: np.ndarray,
     }
 
 
+def build_walkthrough(labels: dict, detect_baseline, showcase: str = "T-1") -> dict:
+    """The numbers behind the console's step-by-step replay of the loop.
+
+    Six detectors ran over the benchmark across seven rounds. Four of them were
+    reverted the moment they scored, so their code is gone; `tools/variants.py`
+    rebuilds each one from what the ledger recorded and refuses to return any of
+    them unless it reproduces the recorded held-out precision, recall and F1.
+
+    Two extra checks happen here, and they are the reason the walkthrough can be
+    trusted as a picture of what ran rather than an illustration of it. The
+    reconstruction of round 0 has to emit exactly the windows that Bob's original
+    file emits when it is pulled out of git and executed, channel by channel, and
+    the reconstruction of round 6 has to emit exactly the windows the engine in
+    the working tree emits today. Both are equality on every window on every
+    channel, not a comparison of totals.
+    """
+    from tools import variants
+
+    frames = {}
+    for chan in sorted(labels):
+        path = DATA_DIR / "test" / f"{chan}.parquet"
+        if path.exists():
+            frames[chan] = pd.read_parquet(path)
+
+    problems = variants.check(frames)
+
+    results = {rnd.key: variants.run(rnd.detect, frames) for rnd in variants.ROUNDS}
+
+    for key, reference in (("start", detect_baseline), ("round6", detect_shipped)):
+        for chan, df in frames.items():
+            mine = results[key]["windows"][chan]
+            theirs = _clamp([tuple(map(int, w)) for w in reference(df)], len(df))
+            if mine != theirs:
+                problems.append(f"{key}: reconstruction disagrees with the real engine on {chan}")
+                break
+
+    if problems:
+        raise SystemExit(
+            "Walkthrough refused. A reconstructed detector does not match what ran:\n  "
+            + "\n  ".join(problems)
+        )
+
+    truth = _clamp(labels[showcase]["windows"], len(frames[showcase]))
+    order = sorted(frames)
+    steps = []
+    for rnd in variants.ROUNDS:
+        result = results[rnd.key]
+        windows = result["windows"][showcase]
+        steps.append({
+            "alarms_by_channel": [len(result["windows"][c]) for c in order],
+            "key": rnd.key,
+            "iteration": rnd.iteration,
+            "alarms": result["alarms"],
+            "channels_firing": result["channels_firing"],
+            "flagged_share": round(result["flagged"] / result["samples"], 4),
+            "dev": result["splits"]["dev"],
+            "holdout": result["splits"]["holdout"],
+            "showcase": {
+                "windows": [
+                    {"start": s, "end": e, "hit": any(s <= t[1] and t[0] <= e for t in truth)}
+                    for s, e in windows
+                ],
+                "caught": sum(
+                    1 for t in truth if any(s <= t[1] and t[0] <= e for s, e in windows)
+                ),
+            },
+            "matches_ledger": rnd.ledger_f1 is not None,
+        })
+
+    return {
+        "showcase": {
+            "channel": showcase,
+            "n": len(frames[showcase]),
+            "truth": [{"start": s, "end": e} for s, e in truth],
+            "index": order.index(showcase),
+        },
+        "channels": order,
+        "steps": steps,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", action="store_true",
@@ -294,6 +375,9 @@ def main() -> int:
         "holdout": {"tp": 0, "fp": 0, "fn": 0, "channels": 0},
     }
     severity_totals = {"high": 0, "medium": 0, "low": 0}
+    # How many of the shipped engine's windows swallow their channel. The
+    # console states this against itself, so it is measured rather than quoted.
+    wide = {"over_half": 0, "almost_all": 0}
     signature_totals: dict[str, int] = {}
     briefs_found = 0
 
@@ -324,6 +408,11 @@ def main() -> int:
             describe(df, values, z, w, labels[chan]["spacecraft"], chan) for w in shipped
         ]
         for d in detections:
+            share = d["length"] / n
+            if share > 0.5:
+                wide["over_half"] += 1
+            if share > 0.99:
+                wide["almost_all"] += 1
             severity_totals[d["severity"]] = severity_totals.get(d["severity"], 0) + 1
             signature_totals[d["signature"]] = signature_totals.get(d["signature"], 0) + 1
             if d["brief"]:
@@ -403,11 +492,13 @@ def main() -> int:
             "channels": len(channels),
             "briefs": briefs_found,
             "severity": severity_totals,
+            "wide": wide,
             "signature": signature_totals,
             "shipped": totals["shipped"],
             "baseline": totals["baseline"],
         },
         "ledger": load_ledger(),
+        "walkthrough": build_walkthrough(labels, detect_baseline),
     }
 
     if args.check:
@@ -416,7 +507,7 @@ def main() -> int:
             stale.append("manifest.json missing")
         else:
             old = json.loads((OUT_DIR / "manifest.json").read_text(encoding="utf-8"))
-            for field in ("splits", "totals", "engine"):
+            for field in ("splits", "totals", "engine", "walkthrough"):
                 if old.get(field) != manifest[field]:
                     stale.append(f"{field} differs")
         if stale:

@@ -107,6 +107,38 @@ export interface LedgerRow {
   };
 }
 
+/** One version of the detector, as it scored when it actually ran.
+ *  `showcase` is the same numbers narrowed to the one recording the walkthrough
+ *  draws, so the chart and the counters cannot drift apart. */
+export interface WalkStep {
+  key: string;
+  iteration: number;
+  /** Alarms raised on each recording, in the order of `Walkthrough.channels`. */
+  alarms_by_channel: number[];
+  alarms: number;
+  channels_firing: number;
+  flagged_share: number;
+  dev: SplitScore;
+  holdout: SplitScore;
+  showcase: {
+    windows: { start: number; end: number; hit: boolean }[];
+    caught: number;
+  };
+  matches_ledger: boolean;
+}
+
+export interface Walkthrough {
+  showcase: {
+    channel: string;
+    n: number;
+    truth: { start: number; end: number }[];
+    /** Where the drawn recording sits in `channels`. */
+    index: number;
+  };
+  channels: string[];
+  steps: WalkStep[];
+}
+
 export interface Manifest {
   generated: string;
   commit: string;
@@ -121,9 +153,12 @@ export interface Manifest {
     channels: number;
     briefs: number;
     severity: Record<string, number>;
+    /** Windows that cover more than half, and almost all, of their recording. */
+    wide: { over_half: number; almost_all: number };
     signature: Record<string, number>;
     shipped: { windows: number; channels_firing: number; flagged: number; samples: number };
     baseline: { windows: number; channels_firing: number; flagged: number; samples: number };
   };
   ledger: LedgerRow[];
+  walkthrough: Walkthrough;
 }

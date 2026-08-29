@@ -1,164 +1,152 @@
-# Groundtrack console - design system
+# Groundtrack console - design notes
 
-Written after the build, from the built world. Everything here is in
-[`src/styles.css`](src/styles.css); this file explains why, not what.
+Written after the rebuild. Everything described here is in
+[`src/styles.css`](src/styles.css) and the four components beside it; this file
+explains why, not what.
+
+## What happened to the first version
+
+A console shipped, was shown to the project owner, and was rejected outright.
+The review is written down in [`../docs/console-revamp-brief.md`](../docs/console-revamp-brief.md)
+and it is specific: the plot was a black line on white with no colour in it, the
+legend named four colours that appeared nowhere near the trace, neither axis said
+what it meant, git commit hashes and build-day references were on a public page,
+and three competing panels fought for one screen. What the owner asked for
+instead was a walkthrough that plays by itself from the first version of the
+detector to the last, showing at each step what changed and whether it survived.
+
+None of the old design is preserved. This is a different page.
 
 ## What this surface is
 
-An **Operate** surface. Someone is doing a task: find a channel, see what the
-engine called, decide whether it matters. It is also the artifact a competition
-judge opens cold with three minutes to spend, so the first viewport has to make
-the argument legible before anyone learns the controls.
+A **read** surface first and an **operate** surface second, in that order,
+because the reader who matters most arrives knowing nothing about the project and
+leaves after a few minutes. So the page opens on a story that runs on its own,
+and only then offers the controls for looking around.
 
-Those two readers want the same thing, which is why there is no separate
-marketing shell: the fastest way to convince the judge is to let them operate
-the real console over real data.
+One idea per screen, in sequence:
+
+1. What this is, in one paragraph.
+2. The walkthrough. Eight steps, self advancing, with the whole benchmark
+   reacting underneath each one.
+3. Any of the 81 recordings, on demand.
+4. What the numbers leave out.
 
 ## The world
 
-**Diazo whiteprint.** Spacecraft engineering drawings were reproduced on a cool
-grey-blue stock in blue-black ink. That is the ground here, and it is
-deliberately *not* cream. "Light technical broadsheet" drifts toward warm paper,
-a high-contrast display serif and a terracotta accent, which is the single most
-common look for a generated page in this register. The width axis of a
-grotesque, cool stock and a functional palette get to the same place without
-arriving where every other page arrives.
+Deep blue-black stage, warm off-white type, and colour spent only on meaning. The
+page is closer to a film than to an instrument: the chart is the largest object
+on screen, it changes on its own, and everything around it is quiet enough to let
+that read.
 
 ### Colour is never decoration
 
-Three voices, and no fourth. Nothing on this page is coloured to be interesting.
-
-| Token | Value | Means | On paper |
-|---|---|---|---|
-| `--ink` | `#10161c` | text, and the telemetry trace itself | 15.8:1 |
-| `--ink-2` | `#46525c` | every piece of secondary text | 6.9:1 |
-| `--signal` | `#16436e` | **the engine said so** | 8.8:1 |
-| `--truth` | `#2b3238` | **the label file said so** | 12.6:1 |
-| `--alarm` | `#a32b1d` | a missed anomaly, or high severity | 6.3:1 |
-| `--caution` | `#8a5b12` | medium severity | 5.0:1 |
-
-Low severity gets no colour at all. Colour is spent on the things that change
-what an operator does.
-
-Strategy is **Restrained**, which is the floor for Operate and the right ceiling
-here: the plot is the only large field of ink on the page, and it earns that by
-being the content.
-
-Light is locked, and there is no dark mode. That is a real cost for a
-mission-ops tool and it was a decision, not an oversight: the world is a printed
-engineering plate, and half of a printed plate is the paper.
-
-### Type
-
-Two families, both self-hosted, no system stack anywhere.
-
-- **Archivo Variable** carries every word. Its width axis is doing the work:
-  display sizes run at `font-stretch: 108-118%`, which reads as a technical
-  publication rather than a magazine. The axis is driven through `font-stretch`
-  rather than `font-variation-settings` so the CSS font-matching algorithm picks
-  the face instead of being bypassed. Only `wdth.css` is imported, because that
-  file carries both axes and adding `wght.css` ships a second copy of the font.
-- **Azeret Mono Variable** carries every number, always `tabular-nums`, so a
-  column of readouts aligns on the decimal without a table.
-
-**The smallest type anywhere in this interface is 16px**, including SVG axis
-ticks and field labels, which conventionally get 10 to 12. Every step above them
-moved up to match. The reference this was benchmarked against sets body at 17px,
-chart titles at 15px and labels at 14px; density here is bought with rules and
-space instead.
-
-| Token | px | Role |
+| Token | Value | Means |
 |---|---|---|
-| `--t-xs` | 16 | axis ticks, rail labels, the floor |
-| `--t-sm` | 17 | field labels, captions |
-| `--t-base` | 19 | index rows, controls, brief prose |
-| `--t-md` | 21 | lead paragraph |
-| `--t-lg` | 24 | readouts, detection titles |
-| `--t-xl` | 30 | plate headings |
-| `--t-2xl` | 44 | masthead figures |
-| `--t-3xl` | 72 | channel identifier |
+| `--trace` | `#c3d3e0` | the sensor reading itself, always this colour |
+| `--truth` | `#f4b942` | a fault that really happened |
+| `--hit` | `#3ad29f` | an alarm with a real fault under it |
+| `--miss` | `#ff6b6b` | an alarm with nothing under it |
+| `--past` | `#a78bfa` | what an earlier version of the detector flagged |
+| `--accent` | `#6cc4ff` | controls, links, the recording being drawn |
 
-Fixed rem steps, never `clamp()`. Users view a tool at a consistent DPI, and a
-heading that shrinks inside a narrow column looks worse, not more responsive.
+Five meanings, five colours, and no sixth. Every one of them appears inside the
+plot area rather than only in a legend, which was the first thing the review
+asked for.
 
-### Structure is rules and space
+Two rules follow from it and are worth stating because both were learned the hard
+way in this rebuild:
 
-There is **no `border-radius` and no `box-shadow` in the stylesheet**, and no
-card. An engineering plate does not have them, and the moment one appears the
-page becomes a dashboard. Grouping is done with hairlines (`--rule-faint`,
-`--rule`, `--rule-strong`), a two-step paper tone, and space.
+**The trace keeps its own colour, always.** An intermediate version repainted the
+line inside each alarm. That reads beautifully for eighty narrow alarms and fails
+completely for the one alarm that covers 99% of the recording: the whole trace
+turns green, the legend's "the sensor reading" points at nothing, and the picture
+quietly flatters the result. Alarms are now drawn as a bar along the top and the
+bottom of the plot with a wash between them, and the line is drawn last, over the
+top of all of it.
 
-Explicitly refused, and worth naming because they are what the category ships by
-default: pills and tinted capsules (severity is carried by the word's own colour
-and weight), eyebrow labels above headings, section numbering, decorative status
-dots, gradient text, glass, and any em dash.
+**Red and green are never the only difference between two marks.** A false alarm
+is hatched, a true one is solid. The distinction that matters most in the whole
+figure survives a reader who cannot tell those two hues apart.
 
-### Browser surfaces
+### The legend carries counts
 
-Selection, focus ring, scrollbars and numerals are themed from the palette
-rather than left at browser defaults. This is the cheapest signal that a page was
-built rather than assembled, and the one most reliably skipped.
+Each legend entry prints how many of that mark are on the chart in front of you,
+and an entry with nothing to point at says zero and dims rather than silently
+promising a colour that is not there. This is the direct answer to the review's
+complaint, and it turns the legend into something a sceptical reader can check
+against the picture.
 
-## Composition
+### Axes say what they are
 
-A three-column application shell at full viewport height, each column scrolling
-alone.
+"Sensor reading" and "Reading number, first to last", in words, at every width,
+shortened rather than clipped on a phone. No bare unit, no bare number.
 
-```
-masthead 96px          wordmark left, the three numbers that matter right
---------------------------------------------------------------------------
-channel index  |  plate column               |  brief
-264-312px      |  flexible                   |  384-472px
-scrolls        |  scrolls                    |  scrolls
-```
+## The walkthrough
 
-Selecting a channel is the leftmost thing on screen and never scrolls away.
+Eight steps: the first detector, three attempts that were undone, two rounds that
+produced nothing to grade, the change that survived, the attempt that scored best
+on the recordings the agent could study and lost on the hidden ones, and the
+ending.
 
-### The rails, which are the whole argument
+Three things change at every step, which is what makes it read as motion rather
+than as eight screenshots:
 
-Under each plot, aligned to the same x-scale, sit stacked 22px rails. Each rail
-is one source's assertion about the same timeline:
+- the **chart** of channel T-1, redrawn with that version's alarms;
+- the **strip of 81 bars**, one per recording, which is where the rounds that
+  barely touch T-1 are visible at all: the whole benchmark reacts to every
+  attempt;
+- the **counters**, which count up or down to their new values.
 
-- **Labelled** - graphite where the benchmark says an anomaly is, oxide red
-  where one was missed.
-- **Engine** - solid Prussian blue where a detection landed on a labelled
-  anomaly, hollow where it did not. Hollow reads as "asserted, unsupported",
-  which is exactly what a false positive is.
-- **Iteration 0** - optional third rail, the engine as IBM Bob first wrote it,
-  executed out of git rather than reimplemented.
+Autoplay is the default and starts when the player is actually on screen, so the
+story is not half over by the time someone scrolls to it. It never loops; it
+stops at the end and offers to play again. Play, pause, back, next and a
+segmented bar that jumps to any step are always present, and the bar's segments
+are 34px tall so a thumb can hit them. Anyone whose system asks for less motion
+gets the player paused, with everything still reachable by hand.
 
-Shading the plot area in two overlapping colours would have been the obvious
-move and would have gone muddy. Separate rails on a shared axis stay readable at
-any density, and they are why turning on the comparison is legible instantly:
-on channel T-1 the engine's rail holds **1** mark and iteration 0's holds **88**,
-above a Labelled rail of 2 that both of them catch.
+The closing step draws iteration 0's 88 alarms in `--past` along the floor of the
+same plot, under the single alarm the shipped engine raises. That comparison on
+one axis is the strongest fact in the project, and it is the one frame where the
+page shows it rather than saying it.
 
-### Motion
+## Honesty in the visual layer
 
-One authored moment: opening a detection eases the plot's x-domain from the
-whole pass down to that window plus context, 420ms on an exponential ease-out.
-It conveys a state transition and preserves the window's position in the
-channel, which a cut would destroy. Everything else is 120-160ms on colour.
-`prefers-reduced-motion` collapses all of it.
+The kept change makes the detector raise one alarm on T-1 that covers 99% of the
+recording. That is a real weakness and the chart makes it look like a triumph, so
+the page says so under the chart, on the step where it happens, and again in the
+closing text. Same for the bar strip: it uses a square root scale, and the
+caption says so and says what that means.
+
+## Type
+
+- **Archivo Variable** for every word, width axis pushed slightly wide at display
+  sizes.
+- **Azeret Mono Variable** for every number, tabular, so a column of readouts
+  aligns without a table.
 
 ## Responsive
 
-Structural, never fluid. Type sizes do not shrink; columns stack.
+Structural, not fluid. At 900px the player's two columns dissolve: the chart, the
+transport and the words stack in that order, so the controls sit directly under
+the chart they drive instead of a full screen below it. At 620px the shell's
+padding tightens, the step bar takes its own row, and the picker and comparison
+toggle go full width.
 
-- **1400px** - index and brief narrow.
-- **1180px** - brief moves below the plate column, full width.
-- **860px** - single column; the masthead wraps and the index caps at 18rem.
-- **Plot below 500px** - rail labels move above their rails and the axis gutter
-  drops from 124px to 54px, because a 124px gutter is a third of a phone.
+## Verified
 
-## Verified, and not
+Real screenshots at 1440px and at 375px, taken from the running dev server
+through a headless browser, plus a scripted pass over the controls: autoplay
+advances on its own, pause holds, back and next move one step, the segmented bar
+jumps, switching recordings loads a different channel's JSON and redraws, and the
+console logs no errors on any of it.
 
-Measured in the live DOM: no element renders below 16px; no `border-radius`
-anywhere; no em dash in any rendered string; no horizontal overflow at 1280 or
-540; every text/background pair passes WCAG AA; no tap target under 40px; the
-impeccable mechanical detector returns clean, though in degraded mode, which is
-an undercount.
-
-**Not verified in this session**: the browser pane could not composite, so there
-are no screenshots and the sub-500px plot layout was never exercised live. Those
-need a human eye before this is called finished.
+Judged against Linear's changelog as a bar for narrated visual reveals, by
+separate critics per piece, over four rounds. What that loop fixed: the trace
+disappearing under a wide alarm, a legend promising colours the chart did not
+have, red being used for two unrelated meanings, controls stranded a screen away
+from the chart on a phone, an annotation printed on top of the data, a score
+whose rounded delta did not add up to its rounded values, and a panel with a hole
+in it. What it did not close: the reference page still wins on pure typographic
+restraint, which is easier to achieve on a page carrying one column of prose than
+on one carrying a chart, a strip, a legend and a readout column at once.

@@ -1,8 +1,8 @@
 import { Component, type ReactNode } from "react";
 
-/** A view that throws must not leave a blank page. This console is meant to be
- *  opened cold by someone evaluating the project, and a white screen is the
- *  one failure mode that tells them nothing at all. */
+/** A view that throws must not leave a blank page. Someone may well open this
+ *  page cold with a few minutes to spend, and a white screen tells them
+ *  nothing at all. */
 export class ErrorBoundary extends Component<
   { children: ReactNode },
   { error: Error | null }
@@ -17,16 +17,15 @@ export class ErrorBoundary extends Component<
     const { error } = this.state;
     if (!error) return this.props.children;
     return (
-      <div className="empty" style={{ padding: "var(--s-8)" }}>
-        <h3>This view stopped rendering</h3>
-        <p>
-          {error.message}. The console reads static JSON from <code>public/data</code>. If that data
-          was regenerated while the page was open, reloading usually clears it.
-        </p>
-        <button className="control" onClick={() => location.reload()}>
-          Reload the console
-        </button>
-      </div>
+      <main className="shell">
+        <div className="panel note" style={{ marginTop: 64 }}>
+          <h3>This part of the page stopped working</h3>
+          <p>{error.message}. Reloading usually clears it.</p>
+          <button className="tbtn primary" style={{ marginTop: 14 }} onClick={() => location.reload()}>
+            Reload
+          </button>
+        </div>
+      </main>
     );
   }
 }

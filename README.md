@@ -199,29 +199,42 @@ npm --prefix web ci
 npm --prefix web run dev          # http://localhost:5273
 ```
 
-What it shows:
+What it shows, in the order a first-time reader meets it:
 
-- **Channel index** - all 81 benchmark channels, with the split each belongs to
-  and how many windows the engine raised on it.
-- **The telemetry plate** - the full pass, with three rails beneath it on one
-  shared x-axis: where the benchmark says anomalies are, where the engine fired,
-  and, when you ask for it, where **iteration 0** fired. A detection that landed
-  on a labelled anomaly is solid; a false positive is drawn hollow. A labelled
-  anomaly nobody caught is drawn in red. The misses are not hidden, because a
+- **The walkthrough**, which is the centre of the page. Eight steps that advance
+  by themselves, slowly, from the first detector Bob wrote to the one that
+  shipped. Each step says in one plain sentence what changed, redraws channel
+  T-1 with that version's alarms on it, redraws a bar for every one of the 81
+  channels, moves the counters, and says whether the gate kept the change or
+  threw it away. Play, pause and step controls are always there, and autoplay
+  stops at the end rather than looping.
+- **Every version of the detector, re-run.** Four of the seven rounds were
+  reverted the moment they scored, so their code no longer exists.
+  [`tools/variants.py`](tools/variants.py) rebuilds each one from the change the
+  ledger records, and the export refuses to write anything unless every rebuilt
+  detector reproduces the precision, recall and F1 the ledger recorded for it, to
+  six decimal places. The reconstruction of iteration 0 must additionally emit
+  exactly the windows Bob's original file emits when it is executed out of git,
+  and the reconstruction of iteration 6 exactly those the working tree emits
+  today, channel by channel. All of them do.
+- **The last step puts iteration 0 back under the shipped engine on one axis**:
+  one alarm covering both labelled anomalies on T-1, above the 88 marks the first
+  version raised on the same channel. The page also says, on that step, that the
+  single alarm covers 99% of the recording and still counts as correct.
+- **Any of the 81 recordings**, below the walkthrough. Pick one, see the labelled
+  anomalies and the engine's alarms drawn on the trace, click an alarm and read
+  the Granite brief for it. A detection that landed on a labelled anomaly is
+  green, a false positive is red and hatched, an anomaly nobody caught keeps its
+  amber column and gains a dashed red edge. The misses are not hidden, because a
   console that only draws its hits is a highlight reel.
-- **Why it fired** - the detector's own deviation measure with the 6-sigma
-  cut-off drawn where it actually sits.
-- **The brief** - the committed Granite brief for the selected detection, split
-  into what happened, why it matters, and what to do next.
-- **The loop** - all ten ledger entries, kept and reverted alike, including the
-  attempt whose cost was never recorded because a shell timeout killed it from
-  outside. That row renders as "not recorded" rather than 0.00.
+- **What the numbers leave out.** Three plain paragraphs: the nine windows that
+  cover more than half their channel, the flagged share going *up* while the
+  alarm count fell, and the fact that the shipped engine finds 19 of the 35
+  held-out anomalies where a rejected round found 26.
 
-It opens on **T-1** by default, chosen by criteria rather than by name: a
-held-out channel where the engine catches both labelled anomalies with a single
-window, and where iteration 0 raised 88. Turning on the comparison puts 1 mark
-and 88 marks on the same axis, which is the clearest statement of what the forge
-loop actually bought.
+Everything a reader sees is read from the exported JSON, including the counts
+inside sentences, so no figure on the page can drift away from the measurement
+behind it.
 
 Design notes are in [`web/DESIGN.md`](web/DESIGN.md).
 
@@ -239,6 +252,7 @@ python tools/test_forge_loop.py                     # validate the harness that 
 python tools/fetch_data.py --check                  # confirm the benchmark is intact
 python tools/make_briefs.py --check                 # regenerate a Granite brief, diff it
 .venv/Scripts/python.exe tools/audit_briefs.py      # check all 78 briefs against the telemetry
+.venv/Scripts/python.exe tools/variants.py          # re-run every version of the detector, check each against the ledger
 python tools/export_console.py --check              # confirm the console shows the current engine
 ```
 
