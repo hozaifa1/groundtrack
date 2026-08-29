@@ -30,9 +30,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Where it started",
     title: "The first detector",
     body:
-      "Bob works out what a sensor has been doing lately, then raises an alarm whenever a reading strays about four times further from that than the sensor normally wanders. It finds most of the real faults. It also fires constantly.",
+      "Bob works out what a sensor has been doing lately, then raises an alarm whenever a reading strays about four times further than normal. It catches most real faults, but it also fires constantly.",
     verdict: "start",
-    verdictText: "The version everything else is measured against",
+    verdictText: "The baseline version everything else is measured against",
     seconds: 10,
   },
   {
@@ -40,11 +40,11 @@ export const CHAPTERS: Chapter[] = [
     data: "round1",
     baseline: "start",
     eyebrow: "Round 1",
-    title: "Ignore the very short alarms",
+    title: "Ignore very short alarms",
     body:
-      "Most of the false alarms lasted only a handful of readings, so Bob made an alarm last at least twelve readings before it counted. The short false alarms went away, and so did real faults that happen to be short.",
+      "Most false alarms lasted only a few readings, so Bob required alarms to last at least twelve readings before counting. The brief false alarms went away, along with real faults that happened to be short.",
     verdict: "dropped",
-    verdictText: "Score fell. The change was undone",
+    verdictText: "The score fell, so the change was undone",
     seconds: 10,
   },
   {
@@ -52,11 +52,11 @@ export const CHAPTERS: Chapter[] = [
     data: "round2",
     baseline: "start",
     eyebrow: "Round 2",
-    title: "Ask for a slightly bigger stray",
+    title: "Raise the threshold slightly",
     body:
-      "Same idea from the other side: a reading now had to stray four and a half times the usual wander instead of four. Fewer false alarms again, and four more real faults slipped past than the first version had missed.",
+      "Trying another angle, a reading now had to stray four and a half times the usual wander instead of four. That cut false alarms further, though four more real faults slipped past than in the first version.",
     verdict: "dropped",
-    verdictText: "Score fell again, and again it was undone",
+    verdictText: "The score fell again, and the change was undone",
     seconds: 10,
   },
   {
@@ -67,7 +67,7 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Rounds 3 and 4",
     title: "Nothing to grade",
     body:
-      "One run was cut off by a timeout before it finished. In the next one, a person saved unrelated files into the project folder while the run was going, the script that checks the work assumed Bob had written them, and it threw away a change that was fine. Both rounds are in the record, and the second one has a correction underneath it.",
+      "One run timed out before finishing. In the next, someone saved unrelated files into the project folder while the run was going. The grading script assumed Bob had written them and threw away a valid change. Both rounds stay in the record, with a correction note logged under the second.",
     verdict: "none",
     verdictText: "The detector stayed exactly as it was",
     seconds: 9,
@@ -77,11 +77,11 @@ export const CHAPTERS: Chapter[] = [
     data: "round5",
     baseline: "start",
     eyebrow: "Round 5",
-    title: "Judge each stretch against its own neighbourhood",
+    title: "Compare each section to its recent history",
     body:
-      "A different idea. Bob measured how jumpy a recording is using a moving window, comparing each stretch only to its own recent history, so a calm passage would be judged against calm. It found one more real fault than the first version and nearly doubled the number of alarms.",
+      "Bob measured variance across a moving window, comparing each stretch to its recent behavior so calm passages were judged against calm baselines. The detector found one more real fault than the first version, but nearly doubled the number of alarms.",
     verdict: "dropped",
-    verdictText: "Third attempt, third time the score fell. Undone",
+    verdictText: "Score fell on evaluation. The change was undone",
     seconds: 10,
   },
   {
@@ -89,11 +89,11 @@ export const CHAPTERS: Chapter[] = [
     data: "round6",
     baseline: "start",
     eyebrow: "Round 6",
-    title: "Raise the bar, and stop cutting one fault into many",
+    title: "Raise the threshold and merge nearby bursts",
     body:
-      "Two changes at once, and neither works alone. A reading now has to stray six times the usual wander, which on its own would throw away real faults, because a real fault crosses that line in bursts with calm gaps in between. So bursts within 150 readings of each other are now treated as one event. Together they take the alarm count down by a factor of six.",
+      "Bob combined two adjustments. Readings had to stray six times the usual wander. Because real faults trigger in intermittent bursts with calm gaps, bursts within 150 readings of each other were merged into a single event. Together, these changes cut total alarms down by a factor of six.",
     verdict: "kept",
-    verdictText: "Score rose. This is the change that stayed",
+    verdictText: "Score rose. This change was kept",
     seconds: 13,
   },
   {
@@ -101,11 +101,11 @@ export const CHAPTERS: Chapter[] = [
     data: "round7",
     baseline: "round6",
     eyebrow: "Round 7",
-    title: "Judge by total drift instead of the worst moment",
+    title: "Judge by cumulative drift across the window",
     body:
-      "Bob swapped the test itself: a stretch now qualifies by how far it strays added up over its whole length, so it catches long gentle drift but misses a brief, sharp blip. On the recordings Bob was allowed to study, this was the best result of the entire run. On the hidden ones it was worse, so the test threw it out.",
+      "Bob adjusted the detector to sum total drift across the entire window. This caught gradual drift, though it missed brief spikes. The approach produced the highest score on the training recordings, but score fell on the hidden test set, so the harness rejected it.",
     verdict: "dropped",
-    verdictText: "The score rose on the recordings Bob could study and fell on the hidden ones",
+    verdictText: "Score rose on training recordings and fell on the hidden set",
     seconds: 13,
   },
   {
@@ -116,9 +116,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Where it ended",
     title: "78 alarms, down from 506",
     body:
-      "Seven attempts, one kept. Across all 81 recordings the detector now raises 78 alarms, down from 506, and on this recording it raises a single one that covers both real faults. That single alarm also stretches across almost the whole recording, which is the honest weakness of it: an alarm that wide counts as correct here while telling an operator very little about where to look.",
+      "Out of seven attempts, only one change was kept. Across all 81 recordings the detector raised 78 alarms, down from 506. On this recording it raised a single alarm covering both real faults. The alarm spans most of the recording, which counts as a detection here while offering operators limited precision on where to look.",
     verdict: "final",
-    verdictText: "Both faults on this recording are inside one alarm",
+    verdictText: "Both faults on this recording fall inside one alarm",
     seconds: 15,
   },
 ];

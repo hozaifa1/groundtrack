@@ -31,18 +31,16 @@ interface Props {
 const M = { top: 26, right: 14, bottom: 54, left: 56 };
 
 /**
- * One recording, with every mark drawn on the trace rather than beside it.
+ * One recording, with every mark drawn directly on the trace.
  *
- * The rule the first attempt broke: if the legend names a colour, that colour
- * has to be visible inside the plot. So a real fault is an amber column behind
- * the line, and an alarm is a coloured bar along the top and the bottom of the
- * plot with a wash between them, bracketing the stretch of line it covers.
+ * If the legend names a colour, that colour appears inside the plot.
+ * A real fault is an amber column behind the line. An alarm is a coloured bar
+ * along the top and bottom of the plot with a wash between them, bracketing
+ * the stretch of line it covers.
  *
- * The line itself stays the colour the legend gives it, always. An earlier
- * version repainted the line inside each alarm, which reads well for eighty
- * narrow alarms and fails completely for the one alarm that covers the whole
- * recording: the trace disappears into the alarm colour and the reader has no
- * way to see the signal at all.
+ * The line itself keeps its legend colour at all times. Repainting the line
+ * inside an alarm fails when a wide alarm covers the whole recording, because
+ * the trace vanishes into the alarm colour and hides the raw signal.
  *
  * Red and green are never the only difference between two marks. A false alarm
  * is hatched and a true one is solid, so the distinction survives a reader who
@@ -99,7 +97,7 @@ export function TraceChart({
           } and ${alarms.length} ${alarms.length === 1 ? "alarm" : "alarms"} marked on the line.`}
         >
           <defs>
-            {/* The hatch is the non-colour half of "this alarm found nothing". */}
+            {/* The hatch pattern marks alarms where no real fault occurred. */}
             <pattern
               id={`hatch${uid}`}
               width="7"
@@ -235,10 +233,7 @@ export function TraceChart({
                   ),
               )}
 
-            {/* an earlier version's alarms, as a row of marks along the floor */}
-            {/* An earlier version's alarms. Its own colour, because red already
-                means "this alarm found nothing" and reusing it here would put a
-                red mark on a chart whose legend says there are none. */}
+            {/* Detections from an earlier detector version, shown along the bottom edge in purple. */}
             {ghost && ghost.length > 0 && (
               <g className="band-enter">
                 <rect
@@ -299,10 +294,8 @@ export function TraceChart({
   );
 }
 
-/** The legend, with the count of each mark actually on the chart beside it.
- *  A legend that names a colour the reader cannot find is what got the first
- *  version of this page thrown out, so an entry that has nothing to point at
- *  says zero rather than quietly implying otherwise. */
+/** The legend, displaying the count of each mark currently on the chart.
+ *  An entry with no marks on the current chart displays zero so the count matches the plot. */
 export function Legend({
   alarms,
   faults,

@@ -56,27 +56,25 @@ export default function App() {
     <main className="shell">
       <header className="masthead">
         <span className="wordmark">Groundtrack</span>
-        <p>Fault detection for spacecraft sensor data, written by an AI agent</p>
+        <p>Fault detection for spacecraft telemetry, written by an AI agent</p>
       </header>
 
       <section className="lede">
-        <h1>An agent wrote a fault detector, then tried seven times to improve it.</h1>
+        <h1>An AI agent wrote a fault detector, then attempted seven revisions.</h1>
         <p>
-          The detector reads sensor recordings from two NASA missions and raises an alarm when
-          something looks wrong. An AI agent called Bob wrote it, then tried seven times to make it
-          better. Engineers had already marked the real faults in those recordings, and a grading
-          script Bob was never allowed to edit used them to check each attempt. Anything that did
-          not score better was undone straight away. One attempt out of the seven survived. It took
-          the number of alarms from <strong>{fmtInt.format(first.alarms)}</strong> down to{" "}
-          <strong>{fmtInt.format(kept.alarms)}</strong>, and it also finds fewer of the real faults
-          than the first version did. Here is every round, in order.
+          The detector monitors telemetry from two NASA missions and flags anomalies. An AI
+          agent named Bob wrote the baseline, then attempted seven revisions. A fixed grading
+          script evaluated each attempt against engineer-verified faults, reverting any regression.
+          Only one attempt survived. It lowered total alarms from{" "}
+          <strong>{fmtInt.format(first.alarms)}</strong> to{" "}
+          <strong>{fmtInt.format(kept.alarms)}</strong>, though it catches fewer verified faults
+          than the initial baseline.
         </p>
       </section>
 
-      <section aria-label="The seven rounds, step by step">
+      <section aria-label="Development rounds step by step">
         <p className="cue">
-          The eight steps below play by themselves, one after another. Pause at any point, or step
-          back and forward yourself.
+          The eight rounds below advance automatically. Pause at any time or step through manually.
         </p>
         <Walkthrough
           data={manifest.walkthrough}
@@ -85,25 +83,25 @@ export default function App() {
           hidden={hidden}
         />
         <p className="chart-note">
-          {seen} of the {manifest.totals.channels} recordings were open to the agent. The other{" "}
-          {hidden} were kept hidden, and those are the ones that decided whether a change survived.
-          The score balances two things: how many of the real faults were found, and how many of
-          the alarms were real. One would be perfect.
+          {seen} of the {manifest.totals.channels} recordings were available during development.
+          The remaining {hidden} were held out to evaluate whether each revision improved overall
+          detection. The benchmark score balances fault recall and alarm precision, with 1.0
+          representing a perfect run.
         </p>
       </section>
 
-      <section aria-label="Look at any recording">
+      <section aria-label="Telemetry explorer">
         <div className="section-head">
-          <h2>Look at any of the {manifest.totals.channels} recordings</h2>
+          <h2>Inspect all {manifest.totals.channels} recordings</h2>
           <p>
-            The same picture for every recording in the benchmark, including the ones where the
-            detector missed a fault or raised an alarm over nothing.
+            Diagnostic traces across the full benchmark, including channels where the detector
+            missed a fault or triggered a false alarm.
           </p>
         </div>
         <Explorer channels={manifest.channels} initial={showcase} briefs={manifest.totals.briefs} />
       </section>
 
-      <section aria-label="What this does not show">
+      <section aria-label="Benchmark limitations and context">
         <div className="section-head">
           <h2>What the numbers leave out</h2>
         </div>
@@ -111,49 +109,45 @@ export default function App() {
           <div className="panel note">
             <h3>Some alarms are far too wide</h3>
             <p>
-              {manifest.totals.wide.over_half} of the {kept.alarms} alarms cover more than half of
-              their recording, and {manifest.totals.wide.almost_all} of those cover almost all of
-              it. The grading counts them as correct, because a real fault
-              falls somewhere inside. An operator reading one would still have to search the whole
-              recording.
+              {manifest.totals.wide.over_half} of the {kept.alarms} alarms span more than half of
+              their recording, and {manifest.totals.wide.almost_all} cover nearly all of it.
+              The benchmark grades them as correct because a real fault falls inside the window,
+              even though an operator would still need to search the entire time series.
             </p>
           </div>
           <div className="panel note">
-            <h3>Fewer alarms, more data under suspicion</h3>
+            <h3>Fewer alarms, larger flagged windows</h3>
             <p>
-              The change that survived did not narrow what the detector is suspicious of. It joined
-              scattered bursts into single events, so the share of readings sitting inside an alarm
-              went up, from{" "}
-              {(first.flagged_share * 100).toFixed(1)}% to {(kept.flagged_share * 100).toFixed(1)}%.
+              The surviving revision merged scattered alarm bursts into single continuous blocks.
+              Because of this grouping, the total share of readings flagged as anomalous increased
+              from {(first.flagged_share * 100).toFixed(1)}% to{" "}
+              {(kept.flagged_share * 100).toFixed(1)}%.
             </p>
           </div>
           <div className="panel note">
-            <h3>Half the faults are still missed</h3>
+            <h3>Half the faults remain undetected</h3>
             <p>
-              On the hidden recordings the detector finds {kept.holdout.tp} of the{" "}
-              {kept.holdout.tp + kept.holdout.fn} marked faults. The round that found the most,{" "}
-              {greediest.holdout.tp}, raised {greediest.holdout.fp} alarms over nothing on those
-              same recordings against the {kept.holdout.fp} this one raises. That is why the
-              grading turned it down.
+              On the held-out channels, the detector catches {kept.holdout.tp} of the{" "}
+              {kept.holdout.tp + kept.holdout.fn} marked faults. The round with the highest recall
+              caught {greediest.holdout.tp} faults, but raised {greediest.holdout.fp} false alarms
+              compared to {kept.holdout.fp} in the final version, leading the scorer to reject it.
             </p>
           </div>
         </div>
         <p className="chart-note" style={{ marginTop: 18 }}>
-          Every figure on this page is recomputed. The pictures of the earlier versions are not
-          drawings of what was written down at the time: each one is that version of the detector
-          run again over the recordings, and the page will not build unless it scores exactly what
-          the record says it scored.
+          Every figure on this page is recomputed directly from the telemetry. The visualizer reruns
+          each detector version across the dataset, and the build fails if any score deviates from
+          the recorded benchmark results.
         </p>
       </section>
 
       <footer className="foot">
         <span>
-          Recordings from two NASA missions, with the faults marked by the engineers who published
-          them: SMAP, a satellite that measures soil moisture from orbit, and MSL, the Curiosity
-          rover on Mars.
+          Telemetry from two NASA missions with ground-truth anomalies labeled by mission engineers:
+          SMAP (Soil Moisture Active Passive satellite) and MSL (Curiosity rover).
         </span>
         <span className="num">
-          {manifest.totals.channels} recordings, one write-up for each of the{" "}
+          {manifest.totals.channels} recordings, with diagnostic summaries for all{" "}
           {manifest.totals.briefs} alarms
         </span>
       </footer>

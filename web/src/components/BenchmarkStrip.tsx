@@ -50,8 +50,7 @@ function useTween(target: number[], ms = 700): number[] {
 const H = 96;
 const TOP = 8;
 const FLOOR = H - 20;
-// The tallest bar any version of the detector produces, so the bars can be
-// compared across steps rather than rescaling under the reader.
+// Tallest bar any version produces, keeping the vertical scale consistent across steps.
 const CEILING = 88;
 
 export function BenchmarkStrip({ counts, labels, highlight }: Props) {
@@ -59,14 +58,19 @@ export function BenchmarkStrip({ counts, labels, highlight }: Props) {
   const eased = useTween(counts);
   const slot = w / Math.max(1, counts.length);
   const barW = Math.max(2, slot - 2);
-  // Square root, so a recording with 88 alarms does not flatten the 60 that
-  // have a handful. The axis is labelled with what that means.
+  // Square root scale prevents extreme outlier counts from flattening smaller values.
   const yOf = (v: number) => FLOOR - (Math.sqrt(Math.max(0, v)) / Math.sqrt(CEILING)) * (FLOOR - TOP);
 
   return (
     <div ref={box} className="strip">
       {w > 0 && (
-        <svg viewBox={`0 0 ${w} ${H}`} width={w} height={H} role="img" aria-label="Alarms raised on each of the 81 recordings">
+        <svg
+          viewBox={`0 0 ${w} ${H}`}
+          width={w}
+          height={H}
+          role="img"
+          aria-label={`Alarms raised across all ${counts.length} recordings`}
+        >
           <line className="grid" x1={0} x2={w} y1={FLOOR} y2={FLOOR} />
           {eased.map((v, i) => {
             const x = i * slot + 1;
@@ -92,9 +96,9 @@ export function BenchmarkStrip({ counts, labels, highlight }: Props) {
         </svg>
       )}
       <p className="chart-note">
-        One bar for each of the {fmtInt.format(counts.length)} recordings, showing how many alarms
-        this version raised on it. The blue bar is the recording drawn above. Bar height follows a
-        square root scale: a bar twice as tall stands for four times as many alarms.
+        Each bar shows the alarms raised on one of the {fmtInt.format(counts.length)} recordings.
+        The highlighted bar is the recording shown above. Heights use a square root scale, so a bar
+        twice as tall means four times as many alarms.
       </p>
     </div>
   );

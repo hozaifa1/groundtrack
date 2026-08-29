@@ -53,12 +53,11 @@ function Delta({ value, goodWhen }: { value: number; goodWhen: "down" | "up" }) 
   }
   const good = goodWhen === "down" ? value < 0 : value > 0;
   const size = Math.abs(value);
-  // Three places, matching the score above it. At two, a reader who adds the
-  // arrow to the old score lands one hundredth away from the new one.
+  // Three decimal places match the score readout above.
   const shown = size < 1 ? size.toFixed(3) : fmtInt.format(Math.round(size));
   return (
     <span className={`delta ${good ? "up" : "down"}`}>
-      {value > 0 ? "+" : "−"}
+      {value > 0 ? "+" : "-"}
       {shown}
     </span>
   );
@@ -83,9 +82,7 @@ export function Walkthrough({ data, channel, recordings, hidden }: Props) {
   const before = chapter.baseline ? byKey.get(chapter.baseline) : undefined;
   const last = index === CHAPTERS.length - 1;
 
-  // Autoplay starts when the player is actually on screen, so the story is not
-  // half over by the time someone scrolls to it. Anyone who has asked their
-  // system for less motion gets it paused instead, with the play button ready.
+  // Autoplay starts when the player enters the viewport. For reduced motion preferences, playback starts paused.
   useEffect(() => {
     const node = host.current;
     if (!node || started || reduced) return;
@@ -150,15 +147,12 @@ export function Walkthrough({ data, channel, recordings, hidden }: Props) {
 
   const bands = step.showcase.windows.map((wnd, i) => ({ ...wnd, id: `${chapter.data}-${i}` }));
 
-  // The last chapter puts the first version's alarms back on the same axis
-  // underneath the one the detector ends with. Without it the closing frame is
-  // the previous frame again, and the whole point of the ending is the gap.
+  // The last chapter displays baseline alarms alongside final alarms to show overall progress.
   const ghost = chapter.ghost
     ? byKey.get(chapter.ghost)?.showcase.windows.map((wnd) => ({ start: wnd.start, end: wnd.end }))
     : undefined;
 
-  // An alarm that swallows the recording still counts as correct, and saying so
-  // where it happens is cheaper than letting someone notice it themselves.
+  // An alarm encompassing the recording counts as correct if a real fault falls inside it.
   const widest = step.showcase.windows.reduce(
     (m, wnd) => Math.max(m, (wnd.end - wnd.start + 1) / data.showcase.n),
     0,
@@ -252,8 +246,8 @@ export function Walkthrough({ data, channel, recordings, hidden }: Props) {
                     </span>
                   </div>
                   <p className="fine">
-                    The score puts the two rows above together. One would mean every fault found
-                    and no alarm wasted.
+                    The score combines both metrics above. 1.000 means finding every fault with zero
+                    false alarms.
                   </p>
                 </>
               )}
@@ -273,27 +267,34 @@ export function Walkthrough({ data, channel, recordings, hidden }: Props) {
             }
             setPlaying((p) => !p);
           }}
+          aria-label={last && progress >= 1 ? "Play walkthrough again" : playing ? "Pause walkthrough" : "Play walkthrough"}
         >
           {last && progress >= 1 ? "Play again" : playing ? "Pause" : "Play"}
         </button>
-        <button className="tbtn" onClick={() => go(index - 1)} disabled={index === 0}>
+        <button
+          className="tbtn"
+          onClick={() => go(index - 1)}
+          disabled={index === 0}
+          aria-label="Previous step"
+        >
           Back
         </button>
         <button
           className="tbtn"
           onClick={() => go(index + 1)}
           disabled={index === CHAPTERS.length - 1}
+          aria-label="Next step"
         >
           Next
         </button>
 
-        <div className="steps" role="tablist" aria-label="Steps">
+        <div className="steps" role="tablist" aria-label="Walkthrough steps">
           {CHAPTERS.map((c, i) => (
             <button
               key={c.id}
               role="tab"
               aria-selected={i === index}
-              aria-label={`Step ${i + 1}: ${c.title}`}
+              aria-label={`Step ${i + 1} of ${CHAPTERS.length}: ${c.title}`}
               title={c.title}
               className={`step-dot${i < index ? " done" : ""}${i === index ? " current" : ""}`}
               onClick={() => go(i)}
@@ -308,11 +309,11 @@ export function Walkthrough({ data, channel, recordings, hidden }: Props) {
           ))}
         </div>
 
-        <span className="counter">
+        <span className="counter" aria-live="polite">
           <span className="num">
             {index + 1} / {CHAPTERS.length}
           </span>
-          <span className="state">{playing ? "moving on its own" : "paused"}</span>
+          <span className="state">{playing ? "playing" : "paused"}</span>
         </span>
       </div>
     </div>

@@ -22,7 +22,7 @@ const PATTERN: Record<string, string> = {
 
 const URGENCY: Record<string, string> = {
   high: "Rated urgent",
-  medium: "Rated worth a look",
+  medium: "Rated moderate",
   low: "Rated minor",
 };
 
@@ -139,8 +139,7 @@ export function Explorer({ channels, initial, briefs }: Props) {
                 </p>
                 <p className="fine">
                   The urgency rating comes from a short set of rules inside the detector, based on
-                  how far the readings moved. It is written to sound like a flight controller's
-                  checklist and is not anyone's real procedure.
+                  how far the readings moved. It is styled after a flight controller's checklist.
                 </p>
               </div>
 
