@@ -14,19 +14,17 @@ interface Props {
  *  them. The original wording stays in the repository; this is what goes on
  *  screen. */
 const PATTERN: Record<string, string> = {
-  level_shift: "The reading moved to a new level and stayed there",
-  transient_spike: "The reading jumped and came back",
-  noise_burst: "The reading got much noisier without shifting its average",
-  unclassified: "The shape of this one does not match any of the patterns",
+  level_shift: "The signal shifted to a new baseline and remained there",
+  transient_spike: "The signal spiked briefly and returned to baseline",
+  noise_burst: "Signal variance jumped sharply while the average remained steady",
+  unclassified: "The signal shape does not match any standard pattern",
 };
 
-/** Said so the rating carries its own source. On first read "Rated moderate"
- *  left the reader asking who rated it, and the answer arrived a paragraph
- *  too late. */
+/** Said so the rating carries its own source. */
 const URGENCY: Record<string, string> = {
-  high: "The detector rates it urgent",
-  medium: "The detector rates it moderate",
-  low: "The detector rates it minor",
+  high: "The detector rates it high urgency",
+  medium: "The detector rates it moderate urgency",
+  low: "The detector rates it low urgency",
 };
 
 export function Explorer({ channels, initial, briefs }: Props) {
@@ -92,7 +90,7 @@ export function Explorer({ channels, initial, briefs }: Props) {
           aria-pressed={compare}
         >
           <span className="box" />
-          Show what the first version flagged here
+          Show alarms flagged by the initial baseline version
         </button>
       </div>
 
@@ -104,7 +102,7 @@ export function Explorer({ channels, initial, briefs }: Props) {
             <p className="chart-title">
               <strong>{detail.id}</strong> from the {detail.spacecraft} satellite,{" "}
               {fmtInt.format(detail.n)} readings,{" "}
-              {detail.split === "holdout" ? "kept hidden from Bob" : "one Bob could study"}
+              {detail.split === "holdout" ? "held out from Bob" : "available to Bob during development"}
               {loading ? ", loading" : ""}
             </p>
           </div>
@@ -123,9 +121,8 @@ export function Explorer({ channels, initial, briefs }: Props) {
           <p className="chart-note">
             {detail.detections.length === 0
               ? "The detector stayed quiet on this recording."
-              : "Click any alarm to read what the write-up says about it."}{" "}
-            The published recordings carry no unit for the reading, so the up and down scale is
-            just the numbers as they were released.
+              : "Click any alarm to read its diagnostic summary."}{" "}
+            The published recordings carry no engineering units, so the vertical axis displays raw normalized values as released.
           </p>
 
           {selected && (
@@ -141,20 +138,14 @@ export function Explorer({ channels, initial, briefs }: Props) {
                   {selected.hit ? "A real fault sits under it." : "Nothing was there."}
                 </p>
                 <p className="fine">
-                  The urgency rating comes from a short set of rules inside the detector, based on
-                  how far the readings moved. It is styled after a flight controller's checklist.
+                  Urgency ratings follow deterministic rules inside the detector based on excursion magnitude, modeled after flight controller checklists.
                 </p>
               </div>
 
               {selected.brief ? (
                 <>
                   <p className="source-note">
-                    What follows is the write-up exactly as a small language model produced it on
-                    the computer that built this page, one for each of the {briefs} alarms. It
-                    says transient spike when a reading jumps and comes back. Where it says sigma,
-                    one sigma is the sensor's usual amount of wobble, so a reading many sigma out
-                    is far outside anything that sensor normally does. Robust sigma means the same
-                    thing measured so a few wild readings cannot skew it.
+                    The following diagnostic summary was generated locally by IBM Granite, producing one brief per alarm across all {briefs} detections. A transient spike denotes an abrupt departure that quickly returns to baseline. One sigma represents standard signal variation: a reading multiple sigma away indicates extreme deviation. Robust sigma estimates this baseline variance using median absolute deviation, preventing extreme outliers from distorting the threshold.
                   </p>
                   <div className="brief">
                     <div>
