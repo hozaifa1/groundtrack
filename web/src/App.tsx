@@ -83,44 +83,52 @@ export default function App() {
       </header>
 
       <section className="lede hero">
-        <h1>Catching real spacecraft faults, without the flood of false alarms.</h1>
-        <p className="hero-copy">
-          Spacecraft telemetry hides real faults inside long stretches of ordinary noise, and
-          missing one can ground a mission. Catching every one used to mean drowning operators in
-          false alarms: the first version of this detector raised{" "}
-          <strong>{fmtInt.format(first.holdout.fp)}</strong> of them on the {hidden} recordings it
-          was tested against. The version that shipped brought that down to{" "}
-          <strong>{fmtInt.format(kept.holdout.fp)}</strong>.
-        </p>
+        <div className="hero-grid">
+          <div className="hero-text">
+            <h1>Catching real spacecraft faults, without the flood of false alarms.</h1>
+            <p className="hero-copy">
+              Spacecraft telemetry hides real faults inside long stretches of ordinary noise, and
+              missing one can ground a mission. Catching every one used to mean drowning operators
+              in false alarms: the first version of this detector raised{" "}
+              <strong>{fmtInt.format(first.holdout.fp)}</strong> of them on the {hidden} recordings
+              it was tested against. The version that shipped brought that down to{" "}
+              <strong>{fmtInt.format(kept.holdout.fp)}</strong>.
+            </p>
+          </div>
+
+          {/* The headline number sits beside the copy rather than under it. The
+              measure stays readable on the left and the right half carries the
+              result instead of empty space. */}
+          <div className="panel stat hero-stat">
+            <p className="stat-was">
+              was <span className="num">{fmtInt.format(first.holdout.fp)}</span>
+            </p>
+            <div className="stat-now">{fmtInt.format(kept.holdout.fp)}</div>
+            <p className="caption">
+              False alarms on the {hidden} recordings IBM Bob never saw. Across all{" "}
+              {manifest.totals.channels}, the queue an operator works through fell from{" "}
+              {fmtInt.format(first.alarms)} alarms to {fmtInt.format(kept.alarms)}.
+            </p>
+          </div>
+        </div>
       </section>
 
       <section aria-label="Headline results" className="stat-rail">
         <div className="panel stat">
-          <div className="value">
-            {fmtInt.format(first.holdout.fp)}
-            <span className="arrow">&rarr;</span>
-            {fmtInt.format(kept.holdout.fp)}
-          </div>
-          <p className="caption">
-            False alarms on the {hidden} recordings IBM Bob never saw during development. Across
-            all {manifest.totals.channels}, the queue an operator has to work through fell from{" "}
-            {fmtInt.format(first.alarms)} alarms to {fmtInt.format(kept.alarms)}.
+          <p className="stat-was">
+            was <span className="num">{first.holdout.f1.toFixed(3)}</span>
           </p>
-        </div>
-        <div className="panel stat">
-          <div className="value">
-            {first.holdout.f1.toFixed(3)}
-            <span className="arrow">&rarr;</span>
-            {kept.holdout.f1.toFixed(3)}
-          </div>
+          <div className="stat-now">{kept.holdout.f1.toFixed(3)}</div>
           <p className="caption">
             Benchmark score on those same recordings, out of a possible 1.0. It balances catching
             real faults against raising false ones.
           </p>
         </div>
         <div className="panel stat">
-          <div className="value">
-            {totalLines}/{totalLines}
+          <p className="stat-was">written by IBM Bob</p>
+          <div className="stat-now">
+            {totalLines}
+            <span className="stat-unit">/{totalLines}</span>
           </div>
           <p className="caption">
             Lines of the detector&apos;s code, all written by IBM Bob. No human ever edited a
@@ -128,7 +136,8 @@ export default function App() {
           </p>
         </div>
         <div className="panel stat">
-          <div className="value">{fmtInt.format(manifest.totals.briefs)}</div>
+          <p className="stat-was">written by IBM Granite</p>
+          <div className="stat-now">{fmtInt.format(manifest.totals.briefs)}</div>
           <p className="caption">
             Operator briefs, one for every alarm the shipped detector raises, written by IBM
             Granite.
