@@ -43,8 +43,8 @@ scored that trade as a large net win. Do not hide this; state it plainly once.
 - Decoding is pinned and `tools/make_briefs.py --check` re-prompts the model and
   diffs the result against what is committed. Measured on 2026-08-30: the first
   brief reproduces exactly in every run, including from a clean clone; briefs
-  after it do not reproduce reliably (two runs of `--limit 8`, same command
-  twenty minutes apart, gave 7 of 8 and then 1 of 8). Do NOT write
+  after it do not reproduce reliably (three runs of `--limit 8` across two
+  hours gave 7 of 8, then 1 of 8, then 2 of 8). Do NOT write
   "byte-for-byte" or any claim that all 78 regenerate. Roughly 50s per brief.
 - What does cover all 78 is `tools/audit_briefs.py`: every number in every brief
   traced back to the telemetry, no model call involved. 0 ungrounded numbers.

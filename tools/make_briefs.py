@@ -147,12 +147,14 @@ def warm_up(model: str) -> None:
     first generation after warm-up reproduce reliably.
 
     It does not extend past that first call. Measured on 2026-08-30: `--check`
-    on one brief reproduced in four runs out of four, including from a clean
-    clone, while two runs of `--check --limit 8` twenty minutes apart reproduced
-    7 of 8 and then 1 of 8. Local CPU inference is not bit-reproducible across
-    processes, and one flipped token rewrites the rest of a paragraph. Claim
-    reproducibility for the first brief only; `audit_briefs.py` is what covers
-    all 78, and it never calls the model.
+    on one brief reproduced in five runs out of five, including from a clean
+    clone, while three runs of `--check --limit 8` across two hours reproduced
+    7 of 8, then 1 of 8, then 2 of 8. Local CPU inference is not bit-reproducible
+    across processes, and one flipped token rewrites the rest of a paragraph.
+    Walking the briefs in generation order rather than alphabetically was the
+    suspected fix and was not one; it is still the right walk, but it moved the
+    count from 1 to 2. Claim reproducibility for the first brief only;
+    `audit_briefs.py` is what covers all 78, and it never calls the model.
     """
     generate(model, "Reply with the single word: ready.", _warming=True)
 

@@ -299,17 +299,23 @@ actually show:
 
 | Run | Result |
 |---|---|
-| `--check` (one brief), four separate runs including one from a clean clone | reproduced exactly, every time |
+| `--check` (one brief), five separate runs including one from a clean clone | reproduced exactly, every time |
 | `--check --limit 2` | 2 of 2 reproduced |
-| `--check --limit 8` | 7 of 8 reproduced |
-| `--check --limit 8`, same command twenty minutes later | 1 of 8 reproduced |
+| `--check --limit 8`, three runs across two hours | 7 of 8, then 1 of 8, then 2 of 8 |
 
 Decoding is pinned and the runner is warmed before the first call, and that is enough to
 make the **first** generation after warm-up reproduce reliably. It is not enough for the
-ones after it. Local CPU inference does not produce bit-identical logits from one process
-to the next, and a single flipped token rewrites the rest of a paragraph — the diffs are
-whole sentences reordered and rephrased, carrying the same telemetry figures, not drifting
-numbers.
+ones after it, and the spread across those three runs is the whole finding: the same
+command against the same files gives a different answer each time. Local CPU inference
+does not produce bit-identical logits from one process to the next, and a single flipped
+token rewrites the rest of a paragraph — the diffs are whole sentences reordered and
+rephrased, carrying the same telemetry figures, not drifting numbers.
+
+The third run was the attempted fix, and it failed. `--check` originally walked the briefs
+alphabetically while they had been written in engine order, and the two sequences diverge
+at the sixth brief; since Ollama reuses cached prefix state between calls, replaying the
+original order looked like the explanation. The walk was corrected — it is worth doing
+anyway — and 2 of 8 reproduced instead of 1. The ordering was not the cause.
 
 So `--check` demonstrates exactly one thing: the committed text came out of this model,
 with these settings, from this prompt. It is not evidence about the other 77 briefs.
@@ -328,6 +334,9 @@ the development machine.
 |---|---|
 | `git clone` + `python -m venv .venv` + `pip install -r requirements.txt` | clean, no build steps, no compiler |
 | `git log --format='%an' -- 'engine/*.py' \| sort -u` | `IBM Bob` |
+| `git log --format='%h %an \| %cn' -- 'engine/*.py'` | two commits, `IBM Bob` as author and committer of both |
+| `git diff 9cc792e -- 'engine/*.py'` | empty |
+| `git log --date=short -- tools/score.py` | one commit, `ae0ff42`, 2026-08-22 — a day before the engine |
 | `tools/fetch_data.py --check` | 164/164 telemetry files, 9.0 MB, `OK - benchmark complete` |
 | `tools/test_score.py` | `ruler OK - all metric tests passed` |
 | `tools/score.py` | holdout F1 **0.622951**, tp 19 / fp 7 / fn 16 — the headline number, to six decimals |
@@ -361,7 +370,7 @@ Documented caveats and project boundaries:
 - **The runbook text is illustrative.** Descriptions are templated from Telemanom's public channel metadata and do not constitute certified NASA flight doctrine.
 - **The held-out split is small.** The set contains 35 labelled windows. F1 scores over a sample of this size fluctuate easily, so large score shifts between iterations warrant skepticism.
 - **Granite briefs are pre-generated offline.** Briefs are created ahead of time using local Ollama inference. The repository includes the generation script, and `tools/make_briefs.py --check` re-prompts the model and diffs the result against the committed file.
-- **Regeneration is only reliable for the first brief.** Pinned decoding and a warmed runner make the first generation after warm-up reproduce exactly, in every run measured, including from a clean clone. Beyond that it is unreliable: two runs of `--check --limit 8`, the same command twenty minutes apart, reproduced 7 of 8 and then 1 of 8. Local CPU inference is not bit-reproducible across processes, and one flipped token rewrites a paragraph. The telemetry figures inside the briefs are stable; the prose around them is not. `tools/audit_briefs.py` is the check that covers all 78, and it never calls the model.
+- **Regeneration is only reliable for the first brief.** Pinned decoding and a warmed runner make the first generation after warm-up reproduce exactly, in every run measured, including from a clean clone. Beyond that it is unreliable: three runs of `--check --limit 8` across two hours reproduced 7 of 8, then 1 of 8, then 2 of 8. Local CPU inference is not bit-reproducible across processes, and one flipped token rewrites a paragraph. The telemetry figures inside the briefs are stable; the prose around them is not. `tools/audit_briefs.py` is the check that covers all 78, and it never calls the model.
 - **Every detection receives a brief because volume is low.** The current engine emits 78 windows, allowing all 78 to be briefed without selective curation. The iteration-0 baseline emits 506 windows (corrected from 466 reported in an early draft), the large majority of them false alarms, and a brief on each would have meant choosing which ones a reader ever sees. Generation is also slow: measured at roughly 50 seconds a brief on this machine, 78 take about an hour and 506 would take about seven. (An earlier draft of this section said 25 hours, extrapolated rather than measured. The measurement is above.)
 - **Operational user demand is unvalidated.** Small satellite operations teams represent a plausible target audience, but direct field validation with external mission controllers has not been conducted.
 - **An offline search found the winning configuration.** Bob proposed and implemented iterations 1 to 5 autonomously, and none of them shipped: the gate reverted three on score, one run was killed mid-call, and one was discarded unscored by a harness bug. The single accepted iteration implemented two threshold values identified by an offline search on the development split. While Bob authored the code and internal reasoning, the project makes no claim that the model found the winning configuration autonomously.
