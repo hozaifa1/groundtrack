@@ -5,9 +5,10 @@ holdout F1 0.266. Bob evaluates one configuration per ~1.1 Bobcoins and cannot t
 thousands. An offline search on this machine can run exhaustive sweeps for free; here is
 what it found.
 
-The search harness runs locally as development scaffolding outside this repository. Its
-resulting configuration, method, and benchmark findings (including negative outcomes)
-are recorded below.
+The search harness was written as local development scaffolding rather than as part of the
+shipped artifact, but it is committed here as [`tools/sweep.py`](../tools/sweep.py) so the
+method can be inspected and re-run. Its resulting configuration, method, and benchmark
+findings (including negative outcomes) are recorded below.
 
 **Result: holdout F1 0.266 → 0.623**, from changing two constants.
 

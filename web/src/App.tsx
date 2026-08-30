@@ -247,8 +247,10 @@ export default function App() {
             <span className="out">OK - A-5_2762-2806.md reproduces exactly from Granite.</span>
           </div>
           <p className="chart-note">
-            Decoding parameters are pinned: tools can re-prompt every brief and diff the output
-            against committed files.
+            Decoding parameters are pinned, and the command above re-prompts the model and diffs
+            the result. It reproduces the first brief reliably; later ones are subject to the
+            drift local inference produces between runs. The check that covers all 78 traces every
+            number in every brief back to the telemetry instead, without calling the model.
           </p>
         </div>
       </section>

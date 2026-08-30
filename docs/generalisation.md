@@ -97,10 +97,25 @@ The engine stays where the gate left it: **holdout F1 0.622951**, iteration 6, a
 
 ## Reproducing this
 
-The search harness is local development scaffolding and is not in the repository; see [`parameter-search.md`](parameter-search.md) for details. The shipped results remain directly verifiable:
+The shipped results are directly verifiable:
 
 ```bash
 .venv/Scripts/python.exe tools/score.py          # reproduces holdout F1 0.622951
 .venv/Scripts/python.exe tools/plot_progress.py  # redraws results/progress.png from the ledger
 cat results/ledger.jsonl                         # iteration 7, reverted, with its cost and task id
 ```
+
+So is the search harness, which is committed as [`tools/sweep.py`](../tools/sweep.py):
+
+```bash
+.venv/Scripts/python.exe tools/sweep.py --selftest                  # prints MATCH against the ruler
+.venv/Scripts/python.exe tools/sweep.py --stage prune --out out.json # re-runs the dev sweep
+.venv/Scripts/python.exe tools/sweep.py --verify-holdout '{...}'     # scores one configuration on holdout
+```
+
+What that covers, and what it does not. The sweep regenerates the dev column and
+will score any single configuration on holdout, so every number in the table above can be
+re-derived from it. The loop that walked all 432 configurations through `--verify-holdout`
+and computed the two correlation coefficients was a throwaway local script and is not
+committed; re-deriving the correlation means writing that loop again around the commands
+above.

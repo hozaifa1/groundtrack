@@ -222,17 +222,20 @@ Granite integration begins in parallel on Day 2 to avoid scheduling bottlenecks 
 Every claim is directly verifiable. The README includes a "Verify this yourself" section:
 
 ```bash
-git log --format='%an' -- 'engine/*.py' | sort -u   # names IBM Bob, nothing else
-cat results/ledger.jsonl                       # every iteration, cost, and outcome
-python tools/score.py                          # reproduce the metric, no Bobcoins needed
-python tools/make_briefs.py --check            # regenerate a Granite brief and diff it
+git log --format='%an' -- 'engine/*.py' | sort -u          # names IBM Bob, nothing else
+cat results/ledger.jsonl                                   # every iteration, cost, and outcome
+.venv/Scripts/python.exe tools/score.py                    # reproduce the metric, no Bobcoins needed
+.venv/Scripts/python.exe tools/make_briefs.py --check      # regenerate a Granite brief and diff it
 
 # Note: `engine/README.md` is human-written documentation and does show up under
 # `git log -- engine/`. The claim is about engine/*.py, and it is stated that way
 # in engine/README.md itself for full transparency.
 ```
 
-Includes a Bobcoin budget table with recorded task IDs for full auditability.
+The interpreter is named by path because `pandas` lives in the virtualenv, not in the
+system Python; a bare `python` is the most common way a first run fails for the wrong
+reason. The README carries a Bobcoin budget table with the recorded task IDs, and the
+whole block was re-run against a clean clone on 30 August 2026.
 
 ---
 

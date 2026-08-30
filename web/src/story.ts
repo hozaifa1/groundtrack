@@ -116,7 +116,7 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Where it ended",
     title: "78 alarms, and most of them real",
     body:
-      "Seven attempts reached the grader, and one survived. Across all 81 recordings, IBM Bob's final detector reduced total alarms from 506 to 78. On the 26 unseen recordings, false alarms dropped from 128 to 7, and the score rose from 0.266 to 0.623. Roughly three in four alarms now flag genuine issues, up from about one in six at the start. On this recording, both faults fall within one alarm that spans most of the timeline.",
+      "Seven rounds followed the baseline, five reached the grader, and one survived. Across all 81 recordings, IBM Bob's final detector reduced total alarms from 506 to 78. On the 26 unseen recordings, false alarms dropped from 128 to 7, and the score rose from 0.266 to 0.623. Roughly three in four alarms now flag genuine issues, up from about one in six at the start. On this recording, both faults fall within one alarm that spans most of the timeline.",
     verdict: "final",
     verdictText: "One round in seven became the detector that shipped",
     seconds: 15,

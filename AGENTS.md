@@ -31,6 +31,7 @@ change it.
 | `tools/forge_loop.py` | Outside the loop | The harness that invokes you. |
 | `tools/robustness_check.py` | Outside the loop | Re-scores with the widest windows dropped. Never modify. |
 | `tools/audit_console_numbers.py` | Outside the loop | Checks every number the console prints against the data. |
+| every other `tools/*.py` | Outside the loop | Operator tooling: the offline search, the console export, the Granite briefs, the audits. Bob never edits anything under `tools/`. |
 | `data/` | Nobody | Immutable benchmark. Never edit or regenerate. |
 | `results/` | Harness | Append-only ledger. Never hand-edit. |
 
