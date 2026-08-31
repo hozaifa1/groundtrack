@@ -4,6 +4,8 @@
 
 Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-bobhub.bemyapp.com/) (August theme: *Advance Space Exploration with AI*).
 
+**Live console → [groundtrack-console.vercel.app](https://groundtrack-console.vercel.app)** · no sign-in, no backend, every figure on the page traced back to the telemetry it came from.
+
 > **Result.** IBM Bob wrote every line of the detector. Measured on 26 recordings Bob never saw, it takes the benchmark score from **0.266 to 0.623** and cuts false alarms from **128 to 7**, so roughly three in four alarms are now real where before it was one in six. It runs all 81 recordings without crashing. Eight rounds ran: the baseline plus seven revisions, of which the fixed grader kept exactly one — four it reverted on score, and two never reached it at all. That is the guardrail doing its job. Optimisation was then **stopped on evidence**: across the search space, the score on data Bob could see turns out to be uncorrelated with the score on data it could not ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections**, and every number in every one of them is checked back against the telemetry it came from. A static [console](#the-console) reads all of it back.
 
 ---
@@ -178,6 +180,8 @@ import, and that is the most common way a first run goes wrong. Running
 missing: ~9 MB, no API key, no account.
 
 ## The console
+
+**Deployed and open to anyone: [groundtrack-console.vercel.app](https://groundtrack-console.vercel.app)**
 
 The web console is a static interface for reviewing detector output. Everything
 it displays was computed once by [`tools/export_console.py`](tools/export_console.py)
