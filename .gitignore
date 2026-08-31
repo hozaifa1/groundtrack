@@ -63,3 +63,10 @@ results/sweep_*
 
 .vercel
 .env*
+
+.claude
+CLAUDE.md
+MEMORY.md
+.agents
+skills-lock.json
+.gemini
