@@ -19,10 +19,10 @@
 
 ## Mandatory submission requirements
 - [x] **1. Complete learning activity**: IBM SkillsBuild prerequisite course.
-- [ ] **2. Core IBM Bob usage**: Core component must use IBM Bob (optional additions: watsonx, Granite, LangFlow, Docling).
-- [ ] **3. Public GitHub repository**: Clean architecture, documented source code, and proper `.gitignore`.
-- [ ] **4. Clear README**: Document the problem, technical approach, real-world impact, and IBM Bob usage.
-- [ ] **5. Functioning prototype**: Runnable proof of concept (CLI, API, or web interface).
+- [x] **2. Core IBM Bob usage**: Core component must use IBM Bob (optional additions: watsonx, Granite, LangFlow, Docling).
+- [x] **3. Public GitHub repository**: Clean architecture, documented source code, and proper `.gitignore`.
+- [x] **4. Clear README**: Document the problem, technical approach, real-world impact, and IBM Bob usage.
+- [x] **5. Functioning prototype**: Runnable proof of concept (CLI, API, or web interface). Live at https://groundtrack-console.vercel.app
 - [ ] **6. Solution presentation video**: Demo video of up to 3 minutes (YouTube, Loom, or Vimeo).
 - [ ] **7. Event platform submission**: Complete project submission on BeMyApp before August 31, 2026 at 11:59 PM ET.
 
