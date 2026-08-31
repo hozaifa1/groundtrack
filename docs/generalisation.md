@@ -88,7 +88,7 @@ Both columns use the sweep's numpy arithmetic, which runs one window optimistic 
 
 **Stop spending Bobcoins on the metric.** The plan defined a stopping rule in advance: if a wide dev sweep finds nothing above ~0.63 that generalises, stop. That rule has now triggered, leaving 28 of 40 Bobcoins unspent. Buying another iteration in this region offers only a 14.7% chance of improvement, while the search's own top candidate is a regression.
 
-This is not a claim that the detector cannot be improved, but a conclusion about what this search can resolve. Two reasons explain why:
+The detector could still be improved. This search simply reached the limit of what its metrics can resolve. Two reasons explain why:
 
 * **35 held-out windows is a small ruler.** One window represents roughly 0.02 F1. Differences of the size the sweep chased cannot be resolved against it in either direction. The single configuration that beat the committed engine by +0.022 was therefore treated as noise and left uncommitted.
 * **The benchmark is contested.** Wu and Keogh's evaluation of common anomaly benchmarks, including NASA's telemetry, identified trivial cases, unrealistic anomaly densities, mislabeled ground truth, and run-to-failure bias. They concluded that much of the field's apparent progress "may be illusionary" [5 in [`literature-review.md`](literature-review.md)]. A dev/holdout correlation of zero across 432 configurations reflects those structural flaws.

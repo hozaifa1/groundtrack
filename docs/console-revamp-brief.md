@@ -15,12 +15,12 @@ understands what they are looking at within ten seconds.
 
 ## 1. The charts do not communicate anything
 
-- The plot renders as **a black line on a white background** and nothing else.
+- The plot renders as a black line on a white background and nothing else.
 - The legend advertises four colours (labelled, missed, detection, false alarm)
-  and **none of those colours appear anywhere in the chart the reader is looking
-  at**. They live in thin 22px "rails" below the plot that nobody connects to the
+  and none of those colours appear anywhere in the chart the reader is looking
+  at. They live in thin 22px "rails" below the plot that nobody connects to the
   graph.
-- **Put the colour inside the plot area, on and around the trace itself.** Shade
+- Put the colour inside the plot area, on and around the trace itself. Shade
   the anomaly regions. Mark the detections where they actually sit on the line.
   If a legend names a colour, that exact colour must be plainly visible in the
   graphic next to it.
@@ -43,7 +43,7 @@ Every one of these has to go or be rewritten in ordinary English:
 | "A fixed benchmark it cannot reach decides whether it was any good." | Unparseable. |
 | "held-out F1", "dev / holdout split" | Statistics jargon shown without explanation. |
 | "sigma", "7.7 σ" | Never defined for the reader. |
-| "commit 27577fe" and any other git hash | **A git commit hash has no business on a website.** Remove every one. |
+| "commit 27577fe" and any other git hash | A git commit hash has no business on a website. Remove every one. |
 | "Day 2", "Day 5", "Day 6 of 9" | The build schedule is not content. Remove every reference. |
 | "Bobcoins", "cost cap hit", "guardrail stop", "ledger correction" | Internal vocabulary. |
 | "level shift: sustained displacement from baseline" | Write it the way a person would say it. |
@@ -79,17 +79,14 @@ final version fires 78 times and still catches genuine events. On channel T-1 al
 the initial version raised 88 alarms, whereas the final version raises 1 alarm that
 still catches both anomalies. Present this progression visually on the chart.
 
-Another key beat: one iteration looked like an improvement on the training data but
-regressed on held-out channels, so the harness discarded it automatically. That
-safeguard is an essential part of the story.
+One iteration looked like an improvement on the training data but regressed on held-out channels, so the harness discarded it automatically. Include that safeguard in the story.
 
 Provide play, pause, and step controls. Autoplay runs by default, while letting the
 user inspect individual steps at their own pace.
 
 ## 6. Make it visually appealing
 
-The feedback indicated that the existing interface lacks polish. The revamp needs
-to feel clean, intentional, and inviting, moving past dense telemetry readouts.
+The feedback indicated that the existing interface lacks polish. The revamp must drop the dense telemetry readouts and present a clean layout.
 
 ## Constraints that still hold
 
