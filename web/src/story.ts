@@ -42,7 +42,7 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 1",
     title: "Ignore very short alarms",
     body:
-      "Most false alarms lasted ten readings or fewer, while known real faults ran longer. Bob introduced a twelve-reading floor so an alarm required twelve consecutive points to count. Short false alarms disappeared. Several real faults on the hidden recordings also disappeared, because those anomalies were brief too. The training data had not revealed that pattern.",
+      "Most false alarms lasted ten readings or fewer, while known real faults ran longer. Bob introduced a twelve-reading floor so an alarm required twelve consecutive points to count. Short false alarms disappeared. Several real faults on the hidden recordings also disappeared, because those anomalies were brief too. Nothing in the data Bob could see showed that pattern.",
     verdict: "dropped",
     verdictText: "Ruled out: alarm duration alone does not separate real faults from noise",
     seconds: 10,
@@ -54,7 +54,7 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 2",
     title: "Raise the threshold slightly",
     body:
-      "False alarms clustered on specific channels, repeatedly tripping just above the four-times cutoff. Bob raised the threshold to four and a half. Some noise cleared, but real faults sat closer to that boundary than expected. The detector missed four additional real faults compared to the baseline, while filtering less noise than round one.",
+      "False alarms clustered on specific channels, repeatedly tripping just above the four-times cutoff. Bob raised the threshold to four and a half. Some noise cleared, but real faults sat closer to that boundary than expected. The detector missed four more real faults than the baseline did, and filtered less noise than round one had.",
     verdict: "dropped",
     verdictText: "Ruled out: a higher cutoff misses real faults without removing enough noise",
     seconds: 10,
@@ -65,7 +65,7 @@ export const CHAPTERS: Chapter[] = [
     baseline: null,
     unscored: true,
     eyebrow: "Rounds 3 and 4",
-    title: "An audit trail that corrects itself",
+    title: "Two rounds that produced nothing",
     body:
       "Round three timed out before completing a version to grade. Round four ran into a harness issue: the runner detected untracked files in the workspace, attributed them to Bob, and rolled back an earlier change. Those files belonged to the operator, saved during the active run. The ledger documented the error alongside the correction. Bob's actual code change from that round was never scored.",
     verdict: "none",
@@ -103,9 +103,9 @@ export const CHAPTERS: Chapter[] = [
     eyebrow: "Round 7",
     title: "Judge by cumulative drift across the window",
     body:
-      "The kept detector still missed gradual drifts that stayed below six times normal wander. Bob tracked cumulative drift across a sliding window to catch sustained low-level deviations. On visible training recordings, this achieved the highest score yet. On the twenty-six unseen recordings, the rule triggered too frequently and degraded performance. The harness retained round six.",
+      "The kept detector still missed gradual drifts that stayed below six times normal wander. Bob tracked cumulative drift across a sliding window to catch sustained low-level deviations. On the recordings Bob could see, this scored higher than anything before it. On the twenty-six it could not see, the rule fired too often and the score fell. The harness kept round six.",
     verdict: "dropped",
-    verdictText: "Rejected: strong results on training data failed to generalize to unseen test recordings",
+    verdictText: "Rejected: the best score yet on visible data, a worse one on hidden data",
     seconds: 13,
   },
   {
