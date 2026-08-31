@@ -79,35 +79,40 @@ export default function App() {
     <main className="shell">
       <header className="masthead">
         <span className="wordmark">Groundtrack</span>
-        <p>Fault detection for spacecraft telemetry, written by IBM Bob, IBM&apos;s coding agent</p>
+        <p>Built for the AI Builders Challenge with IBM Bob</p>
       </header>
 
       <section className="lede hero">
         <div className="hero-grid">
           <div className="hero-text">
-            <h1>IBM Bob wrote this spacecraft fault detector. It never got to grade its own work.</h1>
+            <h1>An AI agent wrote software that finds faults in spacecraft sensor data.</h1>
             <p className="hero-copy">
-              A satellite sends home a steady stream of sensor readings, and the first signs of a
-              fault sit somewhere inside it. Finding them is what this detector does, and every line
-              of it was written by IBM Bob, IBM&apos;s coding agent. Neither Bob nor I got to say
-              whether it worked. A grading script written a day earlier, which Bob was never allowed
-              to read, scored each revision against {hidden} recordings Bob never saw. Bob&apos;s
-              first attempt raised{" "}
-              <strong>{fmtInt.format(first.holdout.fp)}</strong> false alarms on those recordings.
-              The version that survived raises{" "}
-              <strong>{fmtInt.format(kept.holdout.fp)}</strong>.
+              Satellites and rovers send home a constant stream of sensor readings, called telemetry,
+              and the first sign of a real problem is buried somewhere inside it. Groundtrack reads
+              those streams and flags the stretches that look wrong, so the person on console knows
+              where to look.
+            </p>
+            <p className="hero-copy">
+              Every line of it was written by <strong>IBM Bob</strong>, IBM&apos;s coding agent,
+              working on its own. That would be worth very little if Bob had also been the one
+              marking its own result, so it never was. A grading script, committed a day before Bob
+              wrote any code and off-limits to Bob for the whole project, scored each revision
+              against {hidden} real NASA recordings Bob was never shown. Everything below is that
+              script&apos;s verdict, not mine.
             </p>
           </div>
 
           <div className="panel stat hero-stat">
             <p className="stat-was">
-              was <span className="num">{fmtInt.format(first.holdout.fp)}</span>
+              False alarms, was <span className="num">{fmtInt.format(first.holdout.fp)}</span>
             </p>
             <div className="stat-now">{fmtInt.format(kept.holdout.fp)}</div>
             <p className="caption">
-              False alarms on the {hidden} recordings IBM Bob never saw. Across all{" "}
-              {manifest.totals.channels} recordings, the operator queue dropped from{" "}
-              {fmtInt.format(first.alarms)} alarms to {fmtInt.format(kept.alarms)}.
+              Both versions were hunting the same{" "}
+              {kept.holdout.tp + kept.holdout.fn} real faults in those {hidden} hidden recordings.
+              Bob&apos;s first detector also cried wolf{" "}
+              {fmtInt.format(first.holdout.fp)} times. The one that shipped cries wolf{" "}
+              {fmtInt.format(kept.holdout.fp)} times.
             </p>
           </div>
         </div>
