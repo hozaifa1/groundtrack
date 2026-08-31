@@ -6,7 +6,7 @@ Built for the [AI Builders Challenge with IBM Bob](https://aibuilderschallenge-b
 
 **Live console → [groundtrack-console.vercel.app](https://groundtrack-console.vercel.app)** · no sign-in, no backend, every figure on the page traced back to the telemetry it came from.
 
-> **Result.** IBM Bob wrote every line of the detector. Measured on 26 recordings Bob never saw, it takes the benchmark score from **0.266 to 0.623** and cuts false alarms from **128 to 7**, so roughly three in four alarms are now real where before it was one in six. It runs all 81 recordings without crashing. Eight rounds ran: the baseline plus seven revisions, of which the fixed grader kept exactly one — four it reverted on score, and two never reached it at all. That is the guardrail doing its job. Optimisation was then **stopped on evidence**: across the search space, the score on data Bob could see turns out to be uncorrelated with the score on data it could not ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for **every one of the 78 detections**, and every number in every one of them is checked back against the telemetry it came from. A static [console](#the-console) reads all of it back.
+> **Result.** IBM Bob wrote every line of the detector. Measured on 26 recordings Bob never saw, it takes the benchmark score from **0.266 to 0.623** and cuts false alarms from **128 to 7**, so roughly three in four alarms are now real where before it was one in six. It runs all 81 recordings without crashing. Eight rounds ran: the baseline plus seven revisions, of which the fixed grader kept exactly one. Four it reverted on score, and two never reached it at all. That is the guardrail doing its job. Optimisation was then stopped on evidence: across the search space, the score on data Bob could see turns out to be uncorrelated with the score on data it could not ([`docs/generalisation.md`](docs/generalisation.md)). IBM Granite runs locally and has written an operator brief for every one of the 78 detections, and every number in every one of them is checked back against the telemetry it came from. A static [console](#the-console) reads all of it back.
 
 ---
 
@@ -20,14 +20,14 @@ Then an anomaly hits, and the person on console needs an answer that is instant,
 
 ## The approach
 
-Groundtrack splits the problem in two, and the split is the point.
+Groundtrack splits the problem in two.
 
 **The ruler is written outside the loop. The engine is Bob's.**
 
 - [`tools/score.py`](tools/score.py) (the metric, data split, and failure reporting) is authored outside the forge loop and committed before the engine exists. Bob cannot touch it. The core requirement is that the agent under test cannot reach its own grader.
 - **IBM Bob authors 100% of [`engine/`](engine/)** (including the initial baseline), running headlessly through `bob run` inside a scored keep/discard loop. Bob proposes one minimal edit, the scorer re-runs, and the harness commits the change or reverts it.
 - **Provenance is stated directly.** Bob proposed and wrote iterations 1 to 5 unaided, and none of them survived: three were reverted on score, one was killed mid-call before it produced anything, and one was discarded unscored by a harness bug (recorded and corrected in the ledger). The kept iteration implemented two constants found by an offline dev-split search run on the developer's machine. Bob wrote the code and the reasoning; the search chose the numbers; the held-out gate decided. That division of labour is recorded in [`engine/detect.py`](engine/detect.py) itself (Bob wrote the provenance comment above the constants unprompted) and detailed in [`docs/parameter-search.md`](docs/parameter-search.md).
-- **IBM Granite** (`granite4:3b`, run locally through Ollama) turns a detection into a plain-language operations brief, generated offline and committed to the repo: all **78** of them, one per detection, without manual curation. Decoding is pinned and `tools/make_briefs.py --check` re-prompts Granite and diffs the result, which holds for the first brief and does not hold reliably beyond it — [measured, and written up below](#about-that-byte-for-byte-claim). What does cover all 78 is [`tools/audit_briefs.py`](tools/audit_briefs.py), which traces every number in every brief back to the telemetry.
+- **IBM Granite** (`granite4:3b`, run locally through Ollama) turns a detection into a plain-language operations brief, generated offline and committed to the repo: all **78** of them, one per detection, without manual curation. Decoding is pinned and `tools/make_briefs.py --check` re-prompts Granite and diffs the result, which reproduces the first brief reliably and the ones after it only sometimes ([measured, and written up below](#about-that-byte-for-byte-claim)). What does cover all 78 is [`tools/audit_briefs.py`](tools/audit_briefs.py), which traces every number in every brief back to the telemetry.
 
 Because the grader sits outside the agent's reach, the central claim is directly verifiable:
 
@@ -41,9 +41,9 @@ That names `IBM Bob`, and nothing else. Remove Bob, and there is no detector.
 
 ## Why it matters
 
-Anomaly detectors for spacecraft telemetry are abundant in research literature. What is missing is a detector a four-person team can *own*: one small enough to read, practical to re-tune when a new fault mode appears, and transparent about its reasoning.
+Anomaly detectors for spacecraft telemetry are abundant in research literature. What is missing is a detector a four-person team can *own*: one small enough to read and practical to re-tune when a new fault mode appears.
 
-Groundtrack demonstrates that an agentic SDLC tool can maintain this kind of detector continuously against a fixed benchmark, recording every decision, rather than relying on a static model published in 2018.
+Groundtrack demonstrates that an agentic SDLC tool can maintain this kind of detector continuously against a fixed benchmark, recording every decision. A model published in 2018 and never revisited cannot do that.
 
 ## IBM Bob usage
 
@@ -62,26 +62,25 @@ Bobcoin spend is capped per call and tracked per iteration, and **12.2 of the 40
 
 Every row below is one `bob run`. The `task_id` is IBM's, shortened to eight characters
 here and carried in full in `results/ledger.jsonl`; the cost is what IBM billed; and the
-transcript is committed, so each line can be audited against Bob's raw output rather than
-taken on trust.
+transcript is committed, so each line can be audited against Bob's raw output.
 
 | # | task_id | Coins | What came back | Transcript |
 |---|---|---|---|---|
 | 0a | `e83ea8ef` | 1.0925 | **Nothing.** Spent the whole 1-coin cap orienting itself before writing any code | `iter0_attempt1.json` |
-| 0b | `c7d91d62` | 1.3813 | The baseline detector, from a self-contained prompt — **kept** | `iter0_attempt2.json` |
-| 1 | `206d55d1` | 1.1027 | Minimum window length 5 → 12 — reverted | `iter1.json` |
-| 2 | `f060abb7` | 1.1033 | Threshold 4.0σ → 4.5σ — reverted | `iter2.json` |
-| 3 | *(none returned)* | ≤ 3.0000 | Killed from outside the harness mid-call; no transcript, no task id | — |
+| 0b | `c7d91d62` | 1.3813 | The baseline detector, from a self-contained prompt. **Kept** | `iter0_attempt2.json` |
+| 1 | `206d55d1` | 1.1027 | Minimum window length 5 → 12, reverted | `iter1.json` |
+| 2 | `f060abb7` | 1.1033 | Threshold 4.0σ → 4.5σ, reverted | `iter2.json` |
+| 3 | *(none returned)* | ≤ 3.0000 | Killed from outside the harness mid-call; no transcript, no task id | none |
 | 4 | `c6660c1c` | 1.1373 | An engine edit the harness discarded unscored, wrongly (see below) | `iter4.json` |
-| 5 | `f585bfa2` | 1.1367 | Global MAD → rolling local MAD — reverted | `iter5.json` |
-| 6 | `e1b96ece` | 1.1144 | Threshold 6.0σ **and** merge gap 150 — **kept, and it is what ships** | `iter6.json` |
-| 7 | `9584e6a7` | 1.1555 | Peak test → area test — reverted | `iter7.json` |
+| 5 | `f585bfa2` | 1.1367 | Global MAD → rolling local MAD, reverted | `iter5.json` |
+| 6 | `e1b96ece` | 1.1144 | Threshold 6.0σ **and** merge gap 150. **Kept, and it is what ships** | `iter6.json` |
+| 7 | `9584e6a7` | 1.1555 | Peak test → area test, reverted | `iter7.json` |
 | | **billed and known** | **9.2237** | | |
-| | **charged against budget** | **12.2237** | iteration 3 counted at its full 3-coin cap rather than guessed at zero | |
+| | **charged against budget** | **12.2237** | iteration 3 counted at its full 3-coin cap | |
 
 The single largest charge is the one with the least to show for it. Iteration 3 returned
 no transcript and no task id, and nothing in IBM's local task database matches the call,
-so it may never have been billed at all — it is charged here at its full 3-coin cap
+so it may never have been billed at all. It is charged here at its full 3-coin cap
 anyway, because a budget that guesses in its own favour is not a budget. Iteration 0a is
 the same lesson at smaller scale: a whole coin spent reading the repository before writing
 a line of code.
@@ -114,7 +113,7 @@ Iteration 1 shows the dynamic clearly. Bob's edit **improved the score on the da
 
 Iterations 1 and 2 come apart the same way, trading recall for precision roughly one for one. Iteration 5 comes apart in reverse: a locally estimated scale collapses in flat stretches, so recall rose on both splits while false alarms more than doubled.
 
-Iteration 6 explains why the earlier attempts could not have worked. The two constants **interact**, and one-at-a-time search cannot find the pair. Setting 6σ alone loses recall because a real anomaly crosses the threshold in several short bursts, and a 150-sample merge gap reconstitutes those bursts into the single event they physically represent. Together they take holdout precision from 0.163 to 0.731 (128 false positives down to 7). Fewer windows result, each consolidating bursts the old merge gap left scattered.
+Iteration 6 explains why the earlier attempts could not have worked. The two constants **interact**, and one-at-a-time search cannot find the pair. Setting 6σ alone loses recall because a real anomaly crosses the threshold in several short bursts, and a 150-sample merge gap reconstitutes those bursts into the single event they physically represent. Together they take holdout precision from 0.163 to 0.731 (128 false positives down to 7). The result is fewer windows, each of which consolidates bursts that the old merge gap left scattered.
 
 The clearest effect of that iteration shows up in the operator's inbox. Run the committed engine over all 81 channels and it emits **78 windows on 48 channels**. Run the iteration-0 baseline over the same 81 channels and it emits **506 windows on 60 channels**: one sixth as many items to triage. On the 26 held-out channels (a separate population from that count), precision went from 0.163 to 0.731 over the same change. That is the entire brief set: 78 detections, 78 Granite briefs, without curation. At 506, showing all of them would be impossible, and selecting a subset would decide which detections the reader sees.
 
@@ -196,12 +195,12 @@ npm --prefix web run dev          # http://localhost:5273
 
 The interface includes:
 
-- **The walkthrough**: Positioned at the center of the page, eight steps advance
-  from the first detector Bob wrote to the version that shipped. Each step explains
-  in one sentence what changed, redraws channel T-1 with that version's alarms,
-  updates the summary bar across all 81 channels, updates the counters, and shows
-  whether the gate kept or discarded the change. Controls allow playing, pausing,
-  and stepping manually; autoplay stops at the final step.
+- **The walkthrough**: eight steps in the middle of the page, running from the first
+  detector Bob wrote to the version that shipped. Each step explains in one sentence
+  what changed, redraws channel T-1 with that version's alarms, updates the summary bar
+  across all 81 channels, updates the counters, and shows whether the gate kept or
+  discarded the change. You can play it, pause it, or step through by hand, and autoplay
+  stops at the final step.
 - **Every version of the detector, re-run**: Four of the seven rounds were
   reverted upon scoring, so their code is no longer in the repository.
   [`tools/variants.py`](tools/variants.py) rebuilds each version from the ledger
@@ -245,7 +244,7 @@ cat results/ledger.jsonl                                 # every iteration, cost
 .venv/Scripts/python.exe tools/make_briefs.py --check    # regenerate a Granite brief, diff it
 ```
 
-The obvious follow-up question — *whether a human quietly tidied the engine afterwards* —
+The obvious follow-up question, *whether a human quietly tidied the engine afterwards*,
 has its own two commands:
 
 ```bash
@@ -256,7 +255,7 @@ git diff 9cc792e -- 'engine/*.py'                  # empty: the shipped engine i
 `9cc792e` is iteration 6, the last time any engine code changed. Nothing has been edited
 into it since, by anyone.
 
-And the claim the whole project rests on — that the ruler was fixed before the engine
+And the claim the whole project rests on, that the ruler was fixed before the engine
 existed and never moved:
 
 ```bash
@@ -312,14 +311,15 @@ make the **first** generation after warm-up reproduce reliably. It is not enough
 ones after it, and the spread across those three runs is the whole finding: the same
 command against the same files gives a different answer each time. Local CPU inference
 does not produce bit-identical logits from one process to the next, and a single flipped
-token rewrites the rest of a paragraph — the diffs are whole sentences reordered and
-rephrased, carrying the same telemetry figures, not drifting numbers.
+token rewrites the rest of a paragraph. The diffs are whole sentences reordered and
+rephrased, carrying the same telemetry figures with no drift in them.
 
 The third run was the attempted fix, and it failed. `--check` originally walked the briefs
 alphabetically while they had been written in engine order, and the two sequences diverge
 at the sixth brief; since Ollama reuses cached prefix state between calls, replaying the
-original order looked like the explanation. The walk was corrected — it is worth doing
-anyway — and 2 of 8 reproduced instead of 1. The ordering was not the cause.
+original order looked like the explanation. The walk was corrected, which is the right
+order to check in anyway, and 2 of 8 reproduced where 1 had before. The ordering was not
+the cause.
 
 So `--check` demonstrates exactly one thing: the committed text came out of this model,
 with these settings, from this prompt. It is not evidence about the other 77 briefs.
@@ -340,12 +340,12 @@ the development machine.
 | `git log --format='%an' -- 'engine/*.py' \| sort -u` | `IBM Bob` |
 | `git log --format='%h %an \| %cn' -- 'engine/*.py'` | two commits, `IBM Bob` as author and committer of both |
 | `git diff 9cc792e -- 'engine/*.py'` | empty |
-| `git log --date=short -- tools/score.py` | one commit, `ae0ff42`, 2026-08-22 — a day before the engine |
+| `git log --date=short -- tools/score.py` | one commit, `ae0ff42`, 2026-08-22, a day before the engine |
 | `tools/fetch_data.py --check` | 164/164 telemetry files, 9.0 MB, `OK - benchmark complete` |
 | `tools/test_score.py` | `ruler OK - all metric tests passed` |
-| `tools/score.py` | holdout F1 **0.622951**, tp 19 / fp 7 / fn 16 — the headline number, to six decimals |
+| `tools/score.py` | holdout F1 **0.622951**, tp 19 / fp 7 / fn 16, the headline number, to six decimals |
 | `tools/test_forge_loop.py` | `45 passed, 0 failed` |
-| `tools/sweep.py --selftest` | `MATCH` — the search harness reproduces the ruler exactly |
+| `tools/sweep.py --selftest` | `MATCH`, the search harness reproduces the ruler exactly |
 | `tools/variants.py` | all six reconstructions match the ledger |
 | `tools/robustness_check.py` | 0.623 as shipped, 0.576 with wide windows deleted, 7 false alarms either way |
 | `tools/audit_briefs.py` | 78 briefs, 0 ungrounded numbers |
@@ -356,15 +356,15 @@ the development machine.
 
 After all of it, `git status` in that clone was still clean. `plot_progress.py` rewrites
 `results/progress.png` and `export_console.py --check` re-derives the console's JSON, and
-both come back byte-identical to what is committed — which is the check behind the check.
+both come back byte-identical to what is committed, which is the check behind the check.
 
 Two things a fresh clone does **not** need: the benchmark (all 164 telemetry files are
 committed, so there is no download step and no network dependency) and an IBM API key
 (nothing in the verification path calls Bob, and none of it spends coins). Ollama with
 `granite4:3b` is the one external prerequisite, and only for the brief check.
 
-Pip resolved current releases during that run — `pandas` 3.0.5, `numpy` 2.5.2,
-`pyarrow` 25.0.1 — rather than the versions the engine was written against, and the score
+Pip resolved current releases during that run (`pandas` 3.0.5, `numpy` 2.5.2,
+`pyarrow` 25.0.1) over the versions the engine was written against, and the score
 came out identical.
 
 ## Honest limitations
@@ -373,14 +373,14 @@ Documented caveats and project boundaries:
 
 - **The runbook text is illustrative.** Descriptions are templated from Telemanom's public channel metadata and do not constitute certified NASA flight doctrine.
 - **The held-out split is small.** The set contains 35 labelled windows. F1 scores over a sample of this size fluctuate easily, so large score shifts between iterations warrant skepticism.
-- **Granite briefs are pre-generated offline.** Briefs are created ahead of time using local Ollama inference. The repository includes the generation script, and `tools/make_briefs.py --check` re-prompts the model and diffs the result against the committed file.
+- **Granite briefs are pre-generated offline.** Local Ollama inference writes them ahead of time. The repository includes the generation script, and `tools/make_briefs.py --check` re-prompts the model and diffs the result against the committed file.
 - **Regeneration is only reliable for the first brief.** Pinned decoding and a warmed runner make the first generation after warm-up reproduce exactly, in every run measured, including from a clean clone. Beyond that it is unreliable: three runs of `--check --limit 8` across two hours reproduced 7 of 8, then 1 of 8, then 2 of 8. Local CPU inference is not bit-reproducible across processes, and one flipped token rewrites a paragraph. The telemetry figures inside the briefs are stable; the prose around them is not. `tools/audit_briefs.py` is the check that covers all 78, and it never calls the model.
-- **Every detection receives a brief because volume is low.** The current engine emits 78 windows, allowing all 78 to be briefed without selective curation. The iteration-0 baseline emits 506 windows (corrected from 466 reported in an early draft), the large majority of them false alarms, and a brief on each would have meant choosing which ones a reader ever sees. Generation is also slow: measured at roughly 50 seconds a brief on this machine, 78 take about an hour and 506 would take about seven. (An earlier draft of this section said 25 hours, extrapolated rather than measured. The measurement is above.)
-- **Operational user demand is unvalidated.** Small satellite operations teams represent a plausible target audience, but direct field validation with external mission controllers has not been conducted.
+- **Every detection receives a brief because volume is low.** The current engine emits 78 windows, so all 78 get a brief and nothing has to be curated out. The iteration-0 baseline emits 506 windows (corrected from 466 reported in an early draft), the large majority of them false alarms, and a brief on each would have meant choosing which ones a reader ever sees. Generation is also slow: measured at roughly 50 seconds a brief on this machine, 78 take about an hour and 506 would take about seven. (An earlier draft of this section said 25 hours, extrapolated rather than measured. The measurement is above.)
+- **Operational user demand is unvalidated.** Small satellite operations teams are a plausible audience for this, and nobody from one has looked at it. No external mission controller has field-validated any of it.
 - **An offline search found the winning configuration.** Bob proposed and implemented iterations 1 to 5 autonomously, and none of them shipped: the gate reverted three on score, one run was killed mid-call, and one was discarded unscored by a harness bug. The single accepted iteration implemented two threshold values identified by an offline search on the development split. While Bob authored the code and internal reasoning, the project makes no claim that the model found the winning configuration autonomously.
 - **Window-overlap F1 contains a documented metric loophole.** Overlap-based scoring inherently rewards emitting broad windows across entire channels. Because `tools/score.py` is immutable, the offline parameter search applies an explicit constraint to reject degenerate broad windows. Detailed analysis is in [`docs/parameter-search.md`](docs/parameter-search.md).
-- **The final engine retains several wide windows.** Nine of its 78 detected windows cover more than half of their respective channels, and seven cover over 99%. These detections count as true positives under the metric while providing minimal localization detail for operators. For comparison, the baseline had 4 wide windows out of 506. Briefs for these wide detections remain committed in the repository so all outputs stay visible.
-- **Recall declined on the holdout split.** Holdout recall dropped from 0.714 to 0.543, with overall F1 improvement driven entirely by higher precision. Operators who prefer investigating false alarms over risking missed anomalies can adjust these parameters using the included search tools.
+- **The final engine retains several wide windows.** Nine of its 78 detected windows cover more than half of their respective channels, and seven cover over 99%. They count as true positives under the metric while telling an operator almost nothing about where the fault sits. For comparison, the baseline had 4 wide windows out of 506. Briefs for these wide detections remain committed in the repository so all outputs stay visible.
+- **Recall declined on the holdout split.** Holdout recall dropped from 0.714 to 0.543, with overall F1 improvement driven entirely by higher precision. Operators who would sooner chase false alarms than miss anomalies can move the two constants with the included search tools.
 
 ## License
 

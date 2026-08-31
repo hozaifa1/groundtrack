@@ -10,7 +10,7 @@
 
 **IBM Bob runs headless inside a scored keep-or-discard loop as the sole author of a spacecraft anomaly-detection engine, validated against real labelled NASA telemetry. IBM Granite turns each detection into a plain-language operations brief.**
 
-Deleting Bob's commits removes the engine. That claim is falsifiable by any reviewer in under a minute with `git log --author`, and the repository is structured to maintain this property throughout development.
+Deleting Bob's commits removes the engine. Any reviewer can falsify that in under a minute with `git log --author`, and the repository is laid out to keep it true for the whole build.
 
 - **Track**: Advance Space Exploration with AI (August theme)
 - **Deadline**: Aug 31 2026, 11:59pm ET (Sep 1, 09:59 Asia/Dhaka)
@@ -18,7 +18,7 @@ Deleting Bob's commits removes the engine. That claim is falsifiable by any revi
 
 ### Why this concept
 
-Four concepts were built by independent agents and scored blind by three adversarial critics (an IBM engineer persona, a delivery-focused engineering manager, and a domain expert). Groundtrack received consistent scores across all evaluators.
+Independent agents built four concepts, and three adversarial critics scored them blind: an IBM engineer persona, a delivery-focused engineering manager, and a domain expert. Groundtrack scored consistently across all three.
 
 | Concept | IBM judge | Feasibility | Hostile expert | Mean |
 |---|---|---|---|---|
@@ -74,8 +74,8 @@ bob run --format json --max-cost 1 --max-turns 1 --trust --accept-license \
 
 What this measurement changed:
 
-1. **`--max-cost 1` is counterproductive.** Attempt 1 spent a full coin on orientation reads and directory listings, hit the cap, and produced no code. Because a capped call incurs full session charges, setting a cap below the actual iteration cost converts coins into zero output.
-2. **Prompt design determines cost efficiency.** Attempt 1 instructed Bob to read `AGENTS.md` and the skill file to orient itself. Attempt 2 inlined all required context and forbade exploratory reads, completing the baseline in fewer tool calls at a comparable cost. The forge loop injects the failure report inline to keep Bob focused on editing code.
+1. **`--max-cost 1` is counterproductive.** Attempt 1 spent a full coin on orientation reads and directory listings, hit the cap, and produced no code. A capped call is still billed in full, so a cap set below the real iteration cost buys nothing.
+2. **Prompt design determines cost efficiency.** Attempt 1 told Bob to read `AGENTS.md` and the skill file to orient itself. Attempt 2 inlined every piece of context it needed and forbade exploratory reads, and it finished the baseline in fewer tool calls at about the same cost. The forge loop now injects the failure report inline so Bob spends its turns editing code.
 3. **The 16-20 iteration plan exceeds the budget.** With iterations costing 1.10 to 1.14 coins, planning for 16 to 20 iterations requires 18 to 23 coins plus reserves.
 
 **Realistic ceiling: 12 loop iterations at `--max-cost 3`, plus reserve.** Execution time is also a factor: each call takes 40-130s and each scoring pass reads 81 parquet files in 30-60s.
@@ -93,14 +93,11 @@ Verified `bob run` flags in use: `--format json`, `--mode <custom-slug>`, `--max
 | watsonx.ai Lite | Credit card required for identity verification |
 | **Ollama local** | **Free and unmetered.** `granite4:350m` = 708MB/32K ctx · `granite4:3b` (micro) = 2.1GB/128K ctx |
 
-**Mandated design:** Granite briefs are **pre-generated offline with local Ollama**, committed, and served statically from Vercel.
+**Mandated design:** Granite briefs are pre-generated offline with local Ollama, committed, and served statically from Vercel.
 
-Pre-generating briefs provides clear operational advantages for evaluation:
-- Granite performs the generation work, and the process is reproducible (generation script is included; `make briefs` regenerates all files).
-- The evaluated application runs with zero live dependencies: no cold starts, quotas, billing cards, or account gates.
-- The README states clearly that briefs are pre-generated, maintaining full transparency about offline inference.
+That buys three things at judging time. Granite still does the generation work and anyone can repeat it, since the generation script ships and `make briefs` rewrites every file. The deployed app has no live dependency, so no cold start, quota, billing card or account gate can break it during a demo. And the README says plainly that the briefs are pre-generated, so nobody has to guess where they came from.
 
-A ZeroGPU live inference button serves as an optional bonus if the Hugging Face account meets the 30-day age requirement.
+If the Hugging Face account clears the 30-day age requirement, a ZeroGPU live inference button is an optional bonus.
 
 ### Machine constraints
 
@@ -139,13 +136,13 @@ repo/
 
 ### Integrity rules for authorship
 
-The repository split ensures clear attribution:
+The repository split is what makes attribution checkable:
 
-- The human writes **only `tools/score.py`**: the metric calculation, data split definitions, and test harness.
-- **Bob writes 100% of `engine/`**, including the initial baseline engine in iteration 0.
-- `git log --author -- engine/` verifies that only Bob authored the detection code.
+- The human writes only `tools/score.py`: the metric calculation, the data split definitions, and the test harness.
+- Bob writes 100% of `engine/`, including the initial baseline engine in iteration 0.
+- `git log --author -- engine/` shows that only Bob authored the detection code.
 
-If engine improvements plateau, the project outcome remains verifiable: Bob authored and validated the detection engine across all iterations.
+If engine improvements plateau, the outcome is still checkable, because Bob authored and validated the detection engine on every iteration.
 
 ---
 
@@ -156,7 +153,7 @@ If engine improvements plateau, the project outcome remains verifiable: Bob auth
 - Repo: https://github.com/khundman/telemanom
 - Paper: Hundman et al., "Detecting Spacecraft Anomalies Using LSTMs and Nonparametric Dynamic Thresholding," KDD 2018
 
-Runbook text is templated from Telemanom public channel and class metadata in generic flight-rule style. The README clarifies that this content serves as illustrative operator-facing guidance rather than certified operational doctrine.
+Runbook text is templated from Telemanom public channel and class metadata in generic flight-rule style. The README says outright that it is illustrative operator-facing guidance and carries no certification.
 
 ---
 
@@ -174,7 +171,7 @@ Each iteration:
 5. Improved performance leads to `git commit` (Bob author); otherwise `git checkout -- engine/` reverts changes.
 6. Record `{task_id, cost, turns, f1_before, f1_after, kept}` in `results/ledger.jsonl`.
 
-`progress.png` is plotted directly from `ledger.jsonl` by a committed script, allowing full regeneration without Bobcoin expenditure.
+A committed script plots `progress.png` straight from `ledger.jsonl`, so anyone can regenerate it without spending a Bobcoin.
 
 **Bobcoin allocation (of 40 total):**
 
@@ -189,11 +186,11 @@ Budgeted by coin totals based on measured execution costs:
 | Demo capture and debugging reserve | ~6 | budgeted |
 | **Hard floor: stop here** | **5 remaining** | |
 
-**Iteration cost parameters:** A standard iteration (reading the failure report, editing engine code, re-scoring, and reporting) costs **1.10 to 1.14 coins**, refining the earlier 2-3 coin estimate. Because the prompt is fully self-contained, Bob makes three tool calls consistently without exploratory reads. Twelve iterations require approximately 14 coins.
+**Iteration cost parameters:** A standard iteration (read the failure report, edit engine code, re-score, report) costs 1.10 to 1.14 coins, which sharpens the earlier 2-3 coin estimate. The prompt is fully self-contained, so Bob settles at three tool calls and skips exploratory reads. Twelve iterations come to roughly 14 coins.
 
-The primary operational risk is harness waste. Of the 4.48 coins spent on Day 3, 1.14 yielded no code due to a working-tree verification issue in the harness, and a shell timeout terminated another run before writing a ledger record. Both harness failure modes are now resolved and documented directly in `results/ledger.jsonl`.
+The main operational risk is harness waste. Of the 4.48 coins spent on Day 3, 1.14 bought no code because the harness verified the working tree at the wrong moment, and a shell timeout killed another run before it wrote a ledger record. Both failure modes are fixed, and both are written down in `results/ledger.jsonl`.
 
-Iterations run in batches of four, with ledger status reviewed between batches.
+Iterations run in batches of four, and the ledger gets read between batches.
 
 **Budget termination condition:** if the balance drops below 5 coins before 3 kept iterations succeed, stop the loop, commit the current ledger, and proceed with existing results.
 
@@ -207,10 +204,10 @@ Granite integration begins in parallel on Day 2 to avoid scheduling bottlenecks 
 |---|---|
 | **1 (Aug 22)** | Repo scaffold; Telemanom data cached; `tools/score.py` written and tested; `.bob/skills/anomaly-forge-engineer/SKILL.md` drafted; **public GitHub repo created and pushed** |
 | **2 (Aug 23)** | Bob authors iteration-0 baseline engine (first real `bob run` calls); baseline F1 committed. **In parallel:** Ollama installed, `granite4:3b` pulled, first brief generated locally |
-| **3 (Aug 24)** | ✅ Forge loop wired end-to-end; four live calls verified JSON parsing, cost caps, guardrails, and revert mechanics. All four reverted; holdout F1 remained at 0.266 |
+| **3 (Aug 24)** | Done. Forge loop wired end-to-end; four live calls verified JSON parsing, cost caps, guardrails, and revert mechanics. All four reverted; holdout F1 remained at 0.266 |
 | **4 (Aug 25)** | Bulk of Forge iterations run; `ledger.jsonl` and `progress.png` committed |
 | **5 (Aug 26)** | `make_briefs.py` generates the complete brief set; brief quality reviewed |
-| **6 (Aug 27)** | ✅ Console built: channel index, telemetry plate with alignment rails, deviation plate with 6-sigma cut-off, Granite brief pane, iteration-0 comparison, and ledger view. Implemented with Vite + React as a static single-page application. Not yet deployed |
+| **6 (Aug 27)** | Done. Console built: channel index, telemetry plate with alignment rails, deviation plate with 6-sigma cut-off, Granite brief pane, iteration-0 comparison, and ledger view. Implemented with Vite + React as a static single-page application. Not yet deployed |
 | **7 (Aug 28)** | Integration and falsifiability pass (§8). Fresh-clone test: verify that a reviewer can reproduce the score with zero Bobcoins |
 | **8 (Aug 29)** | README (problem, approach, impact, Bob usage); 3-minute video recorded |
 | **9 (Aug 30-31)** | Buffer; BeMyApp submission ahead of 11:59pm ET deadline |
@@ -219,7 +216,7 @@ Granite integration begins in parallel on Day 2 to avoid scheduling bottlenecks 
 
 ## 8. Falsifiability pass: verification in 60 seconds
 
-Every claim is directly verifiable. The README includes a "Verify this yourself" section:
+Every claim can be checked directly. The README carries a "Verify this yourself" section:
 
 ```bash
 git log --format='%an' -- 'engine/*.py' | sort -u          # names IBM Bob, nothing else
@@ -232,8 +229,8 @@ cat results/ledger.jsonl                                   # every iteration, co
 # in engine/README.md itself for full transparency.
 ```
 
-The interpreter is named by path because `pandas` lives in the virtualenv, not in the
-system Python; a bare `python` is the most common way a first run fails for the wrong
+The interpreter is named by path because `pandas` lives in the virtualenv and the system
+Python has none. A bare `python` is the most common way a first run fails for the wrong
 reason. The README carries a Bobcoin budget table with the recorded task IDs, and the
 whole block was re-run against a clean clone on 30 August 2026.
 
@@ -241,25 +238,23 @@ whole block was re-run against a clean clone on 30 August 2026.
 
 ## 9. Known weaknesses, stated plainly
 
-These items are documented transparently:
-
-1. **Operational user context is unvalidated.** The target user base (small university CubeSat and NewSpace ops teams) is plausible but lacks operational validation.
-2. **Runbook text is illustrative** flight-rule material, separate from certified operational doctrine.
-3. **The dataset is small** (105 labelled sequences), presenting a standard generalization constraint.
-4. **The agent iteration loop pattern is shared across entrants.** Groundtrack differentiates itself through execution rigor and explicit failure handling (§10).
+1. **Operational user context is unvalidated.** The target user base, small university CubeSat and NewSpace ops teams, is plausible, and nobody in one has tried the thing.
+2. **Runbook text is illustrative** flight-rule material with no certification behind it.
+3. **The dataset is small.** 105 labelled sequences is a normal generalisation constraint for this benchmark.
+4. **The agent iteration loop pattern is shared across entrants.** What separates Groundtrack is execution rigor and how openly it handles its failures (§10).
 
 ---
 
 ## 10. Open item: differentiating demo presentation
 
 **Day 3 update: experimental evidence supports leading with real failure handling.**
-Iteration 1 increased the engine's minimum window length. Dev F1 increased (0.235 to 0.258) while holdout F1 decreased (0.266 to 0.250), prompting the gate to revert the change. The held-out split correctly intercepted a change that only appeared beneficial on the development split. Bob documented this diagnosis in its generated report. This provides authentic footage of autonomous validation, recorded in `results/ledger.jsonl`.
+Iteration 1 raised the engine's minimum window length. Dev F1 went up (0.235 to 0.258) while holdout F1 went down (0.266 to 0.250), so the gate reverted it. The held-out split caught a change that only looked good on the development split, and Bob diagnosed it correctly in its own report. That is real footage of the validation working, and `results/ledger.jsonl` has the record.
 
-Demo presentation options for Day 5-6 evaluation:
+Demo options to weigh on Day 5-6:
 
-- Highlight Bob encountering an unproductive iteration and the harness reverting it, demonstrating autonomous quality control.
-- Show anomaly detection before and after loop iterations, with corresponding updates to Granite briefs.
-- Provide interactive telemetry scrubbing with live detection overlays against ground-truth labels.
+- Show Bob running an unproductive iteration and the harness reverting it on its own.
+- Show detection before and after the loop, with the Granite briefs updating alongside.
+- Let the viewer scrub the telemetry with detection overlays drawn against the ground-truth labels.
 
 ---
 

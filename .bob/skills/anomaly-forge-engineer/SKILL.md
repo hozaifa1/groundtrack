@@ -39,11 +39,11 @@ true positive when it overlaps a labelled window.
    channels and windows that are currently missed (false negatives) or wrongly flagged
    (false positives).
 2. **Read the current engine**: `engine/detect.py` and `engine/runbook.py`.
-3. **Pick ONE specific failure** to attack. Not five. One. State which one and why.
+3. **Pick ONE specific failure** to attack, and state which one and why.
 4. **Make the smallest edit** that plausibly fixes it. Prefer changing a threshold, a window
-   size, or a single rule over rewriting a module. A large rewrite that improves the score is
-   worth less here than a small change you can explain, because the next iteration has to
-   build on it.
+   size, or a single rule over rewriting a module. The next iteration has to build on what
+   you leave behind, so a small change you can explain beats a large rewrite that happens
+   to score better.
 5. **Run the scorer yourself** to check your work:
    `python tools/score.py --json`
 6. **Report** in the structured format below.
@@ -57,7 +57,7 @@ true positive when it overlaps a labelled window.
 - **Deterministic.** No randomness without a fixed seed. The same input must give the same
   output, or the keep/discard gate is meaningless.
 - **Keep it readable.** A mission-ops engineer has to be able to read `detect.py` and see why
-  it fired. Prefer an explicit rule over a clever one-liner.
+  it fired. Prefer an explicit rule to a clever one-liner.
 
 ## Report format
 

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Groundtrack Video Shoot Sheet and Teleprompter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Azeret+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --bg: #0a0e13;
+    --panel: #131b25;
+    --panel2: #0f161e;
+    --line: #23303d;
+    --line-soft: #1a242f;
+    --text: #eff4f8;
+    --dim: #8b9fb0;
+    --dimmer: #63768a;
+    --accent: #6cc4ff;
+    --say: #3ad29f;
+    --warn: #f4b942;
+    --stop: #ff6b6b;
+    --sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Azeret Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --maxw: 960px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 24px 120px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--maxw); margin: 0 auto; }
+
+  header {
+    padding: 48px 0 24px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 36px;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-size: clamp(28px, 4.8vw, 42px);
+    line-height: 1.12;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+  }
+  .standfirst {
+    color: var(--dim);
+    font-size: 17px;
+    max-width: 68ch;
+    margin: 0 0 22px;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .fact {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--dim);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 12px;
+    background: var(--panel2);
+  }
+  .fact b { color: var(--text); font-weight: 600; }
+
+  section { margin: 0 0 54px; }
+  h2 {
+    font-size: 13px;
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sub { color: var(--dim); font-size: 15px; margin: 12px 0 22px; max-width: 66ch; }
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 28px 0 12px;
+    letter-spacing: -0.01em;
+  }
+
+  ul.check { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  ul.check li {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 14px;
+    background: var(--panel2);
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+  }
+  ul.check li::before {
+    content: "";
+    width: 14px; height: 14px;
+    margin-top: 4px;
+    border: 1.5px solid var(--dimmer);
+    border-radius: 4px;
+    display: block;
+  }
+  ul.check b { font-weight: 600; color: var(--text); }
+  ul.check .why { color: var(--dim); display: block; font-size: 14px; margin-top: 2px; }
+
+  .shot {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: var(--panel);
+  }
+  .shot.optional { border-color: #4a3f1f; background: #171408; }
+  .slate {
+    background: var(--panel2);
+    border-right: 1px solid var(--line);
+    padding: 18px 16px;
+  }
+  .shot.optional .slate { background: #12100a; border-right-color: #4a3f1f; }
+  .tc {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 10px;
+  }
+  .shot.optional .tc { color: var(--warn); }
+  .onscreen {
+    font-size: 13.5px;
+    color: var(--dim);
+    line-height: 1.45;
+  }
+  .onscreen strong {
+    color: var(--text);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11.5px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .line {
+    padding: 20px 22px;
+    font-size: 19px;
+    line-height: 1.62;
+  }
+  .line em {
+    color: var(--say);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .beat {
+    display: inline-block;
+    width: 1.2em;
+    color: var(--dimmer);
+    font-family: var(--mono);
+  }
+  .note {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    font-size: 13px;
+    color: var(--dim);
+    font-family: var(--mono);
+    line-height: 1.5;
+  }
+  .note b { color: var(--warn); font-weight: 600; }
+
+  pre {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 8px;
+    color: var(--text);
+  }
+  pre .c { color: var(--dimmer); }
+  pre .o { color: var(--say); }
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    background: var(--panel2);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .cap { font-size: 13.5px; color: var(--dim); margin: 0 0 20px; }
+
+  .call {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--panel2);
+    border-radius: 8px;
+    padding: 15px 18px;
+    margin: 20px 0;
+  }
+  .call.warn { border-left-color: var(--warn); }
+  .call.stop { border-left-color: var(--stop); }
+  .call h4 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .call.warn h4 { color: var(--warn); }
+  .call.stop h4 { color: var(--stop); }
+  .call p { margin: 0; color: var(--dim); font-size: 14.5px; }
+  .call p + p { margin-top: 8px; }
+  .call strong { color: var(--text); }
+
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; }
+  table { border-collapse: collapse; width: 100%; min-width: 500px; font-size: 14px; }
+  th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+    background: var(--panel2);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--line-soft); color: var(--dim); }
+  td b { color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+
+  .qa {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    background: var(--panel2);
+  }
+  .qa .q {
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 8px;
+    font-size: 15px;
+  }
+  .qa .a {
+    color: var(--dim);
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+
+  ol.steps { padding-left: 20px; margin: 0 0 24px; }
+  ol.steps li { margin-bottom: 12px; color: var(--text); font-size: 15px; }
+  ol.steps .why { color: var(--dim); display: block; font-size: 14px; margin-top: 2px; }
+  ol.steps a { color: var(--accent); text-decoration: none; }
+  ol.steps a:hover { text-decoration: underline; }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+    color: var(--dimmer);
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">AI Builders Challenge with IBM Bob | 31 August 2026</p>
+  <h1>Groundtrack Video Shoot Sheet and Script</h1>
+  <p class="standfirst">
+    The 3-minute submission script, the shot cues, the commands that go on screen, and the
+    steps for submitting. Every figure here was checked on this machine against the live deployment.
+  </p>
+  <div class="facts">
+    <span class="fact">Holdout F1: <b>0.266 to 0.623</b></span>
+    <span class="fact">False alarms: <b>128 to 7</b></span>
+    <span class="fact">Triage queue: <b>506 to 78</b></span>
+    <span class="fact">Rounds kept: <b>1 of 8</b></span>
+    <span class="fact">Target runtime: <b>2:45 to 2:55</b></span>
+  </div>
+</header>
+
+<!-- =============== STRATEGY =============== -->
+<section>
+  <h2>Judging alignment</h2>
+  <p class="sub">
+    Where each of the four official IBM criteria gets earned.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Criterion</th><th>Where the script earns it</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Innovation</b></td>
+          <td>The sealed grader, landed by 0:41. An agent held to a standard it cannot reach, well past querying a model.</td>
+        </tr>
+        <tr>
+          <td><b>Technical execution</b></td>
+          <td>Two IBM technologies doing real work, the round the grader auto-reverted, and commands the judge can run.</td>
+        </tr>
+        <tr>
+          <td><b>Challenge fit</b></td>
+          <td>NASA, SMAP, Curiosity, and the CubeSat operations team, stated directly.</td>
+        </tr>
+        <tr>
+          <td><b>Feasibility</b></td>
+          <td>Static console, no backend, no API key, runs on a laptop CPU.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="call">
+    <h4>Handling the recall trade</h4>
+    <p>
+      The script states <strong>"six real faults traded for a hundred and twenty-one fewer false ones."</strong>
+      Say it outright, because any reviewer who runs <code>score.py</code> sees the recall change in the
+      first line of output anyway. Deliver the sentence flat and move on.
+    </p>
+  </div>
+</section>
+
+<!-- =============== SETUP =============== -->
+<section>
+  <h2>Before you press record</h2>
+  <p class="sub">Get all of this done before the first take.</p>
+
+  <h3>Machine setup</h3>
+  <ul class="check">
+    <li><span><b>Install OBS Studio or prepare Loom</b>
+      <span class="why">Set Output to 1920x1080, 30fps, MP4. If OBS will not cooperate, Loom in the browser works.</span></span></li>
+    <li><span><b>Turn on Focus Assist / Do Not Disturb</b>
+      <span class="why">Mute Windows notifications, Slack, Discord, and anything else that can pop a toast mid-take.</span></span></li>
+    <li><span><b>Close every window except the browser and terminal</b>
+      <span class="why">Alt-Tab between exactly two windows throughout the recording.</span></span></li>
+    <li><span><b>Hide the browser bookmarks bar</b> <span class="why">Press Ctrl+Shift+B for a clean browser frame.</span></span></li>
+    <li><span><b>Set terminal font to 18-20pt with dark theme</b>
+      <span class="why">A judge may watch this on a laptop. The git output and the scorer table have to stay readable.</span></span></li>
+  </ul>
+
+  <h3>Audio setup</h3>
+  <ul class="check">
+    <li><span><b>Record in a quiet room with soft furnishings</b>
+      <span class="why">Curtains, rugs, or bedding soak up the room reverb. Turn the fans off.</span></span></li>
+    <li><span><b>Speak across the microphone at roughly 30cm distance</b>
+      <span class="why">Speaking across it, rather than into it, keeps the p and t sounds from popping.</span></span></li>
+    <li><span><b>Add Noise Suppression (RNNoise) and Compressor filters in OBS</b>
+      <span class="why">Right-click Mic/Aux, choose Filters, add both. That holds the levels steady.</span></span></li>
+    <li><span><b>Test audio levels for 10 seconds</b>
+      <span class="why">Speech should peak between -12dB and -6dB and never touch red.</span></span></li>
+  </ul>
+
+  <h3>Staged windows</h3>
+  <ul class="check">
+    <li><span><b>Tab 1: <a href="https://groundtrack-console.vercel.app">groundtrack-console.vercel.app</a></b>
+      <span class="why">Load the page first and pause the walkthrough autoplay, so you drive the steps yourself.</span></span></li>
+    <li><span><b>Terminal: open at <code>F:\Projects\ibm-bob-challenge</code>, screen cleared</b></span></li>
+    <li><span><b>Dry-run the terminal commands once</b>
+      <span class="why">Check that the virtualenv interpreter runs clean and prints the numbers you expect.</span></span></li>
+  </ul>
+</section>
+
+<!-- =============== SCRIPT =============== -->
+<section>
+  <h2>The script and shot list</h2>
+  <p class="sub">
+    Green text marks natural emphasis. <span class="beat">/</span> marks a breath.
+    Let each terminal output sit on screen for a moment before you speak the next line.
+  </p>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">0:00 to 0:14</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Terminal full screen. Type the provenance command and display the three commit lines.
+      </div>
+    </div>
+    <div class="line">
+      Here is the git history of a spacecraft fault detector, and of the script that grades it.
+      <span class="beat">/</span> One commit is mine, from <em>August twenty-second</em>: the grader.
+      <em>IBM Bob</em> wrote every line of the detector after that. <span class="beat">/</span>
+      Bob was <em>never allowed to read that grader</em>.
+      <div class="note">
+        <b>Open directly on the terminal.</b> No title slide or introduction. Type the command, then let the three dated lines sit on screen.
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">0:14 to 0:25</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Alt-Tab to the web console. Show the hero section and four stat cards without scrolling.
+      </div>
+    </div>
+    <div class="line">
+      This is <em>Groundtrack</em>. I had IBM Bob write the detector. I then made sure
+      <em>neither of us</em> could be the one who tells you it worked.
+      <div class="note">
+        <b>Pacing:</b> Speak steadily through "neither of us" and leave a pause before switching views.
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">0:25 to 0:41</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Scroll down to the benchmark overview showing the 81 telemetry channels.
+      </div>
+    </div>
+    <div class="line">
+      It runs on NASA's Telemanom benchmark. This consists of <em>eighty-one telemetry recordings</em> from the
+      SMAP satellite and the Curiosity rover, with faults labelled by mission engineers.
+      <span class="beat">/</span> It is built for the three or four people running a CubeSat program
+      off a runbook nobody has revalidated since launch.
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">0:41 to 1:00</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Show the four-step workflow diagram in the console.
+      </div>
+    </div>
+    <div class="line">
+      The grader holds back <em>twenty-six</em> of those recordings. Bob never sees them and cannot read the metric.
+      <span class="beat">/</span> Bob proposes a change and commits it. Only then does the sealed grader score it
+      on telemetry Bob has never seen. <span class="beat">/</span> When the score goes up, the change stays.
+      When the score goes down, it reverts automatically.
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">1:00 to 1:32</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Walkthrough section. Click step 1 (baseline), step 6 (winning change), step 7 (reverted peak test), then step 8.
+      </div>
+    </div>
+    <div class="line">
+      Eight rounds ran. The grader kept <em>exactly one</em>. <span class="beat">/</span>
+      Here is Bob's first detector: five hundred and six alarms across all eighty-one recordings.
+      <span class="beat">/</span> Here is the round the grader kept. <span class="beat">/</span>
+      And here is the round it threw away: Bob's highest score ever on the data it could see,
+      and lower on the data it could not. It reverted automatically. Nobody asked me.
+      <div class="note">
+        <b>Action:</b> Click each step deliberately so the UI chart updates alongside your words.
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">1:32 to 1:54</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Final step in the walkthrough as counters finish updating.
+      </div>
+    </div>
+    <div class="line">
+      What ships raises <em>seventy-eight</em> alarms. On the twenty-six held-out recordings, false alarms fell
+      from a hundred and twenty-eight to <em>seven</em>. <span class="beat">/</span> Three in four alarms are real now.
+      It used to be one in six. <span class="beat">/</span> Six real faults traded for a hundred and twenty-one fewer false ones.
+    </div>
+  </div>
+
+  <div class="shot optional">
+    <div class="slate">
+      <span class="tc">1:54 to 2:08</span>
+      <div class="onscreen"><strong>Optional cut</strong>
+        Only include if rehearsal is under 2:45. Show <code>docs/generalisation.md</code> on GitHub or the console metric notes.
+      </div>
+    </div>
+    <div class="line">
+      Tuning against what the agent could see has no benefit. Across four hundred and thirty-two configurations,
+      the two scores are uncorrelated. <span class="beat">/</span> So I stopped, with twenty-eight Bobcoins unspent.
+      <div class="note">
+        <b>Time saving:</b> Drop this shot first if rehearsal runs past 2:50.
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">2:08 to 2:30</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Scroll to the recording explorer, click an alarm (e.g. T-1), and open the Granite operator brief panel.
+      </div>
+    </div>
+    <div class="line">
+      Finding the alarm is half the job. Telling a tired engineer what to do about it counts for just as much.
+      <span class="beat">/</span> <em>IBM Granite</em> runs locally on this laptop's CPU and briefs <em>every one</em>
+      of the seventy-eight alarms. <span class="beat">/</span> Nothing is hand-edited. Every number is audited back to the telemetry.
+      <div class="note">
+        <b>Visual sync:</b> Let the brief panel finish expanding before you name IBM Granite.
+      </div>
+    </div>
+  </div>
+
+  <div class="shot">
+    <div class="slate">
+      <span class="tc">2:30 to 2:55</span>
+      <div class="onscreen"><strong>On screen</strong>
+        Alt-Tab back to the terminal. Run the author check command, then run the scorer.
+      </div>
+    </div>
+    <div class="line">
+      The console is static. It has no backend and no API key. You do not have to believe any of it.
+      <span class="beat">/</span> Check git for the engine author: it returns one name.
+      <span class="beat">/</span> Run the scorer: <em>0.622951</em>, the number you just watched.
+      <span class="beat">/</span> You can also run the forty-five harness tests, including the one that catches edits to the grader.
+      <span class="beat">/</span> <em>Most submissions ask you to trust the pitch. This one hands you the commands.</em>
+      <div class="note">
+        <b>Close:</b> Land the final line and stop talking. Leave the terminal on screen for two seconds before you stop the recording.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============== COMMANDS =============== -->
+<section>
+  <h2>Commands to run on screen</h2>
+  <p class="sub">These run clean in PowerShell or bash.</p>
+
+  <h3>Opening shot: commit provenance</h3>
+  <pre><span class="c">$</span> git log --format="%ad  %<(9)%an  %<(34,trunc)%s" --date=short -- tools/score.py engine/*.py | sort
+
+<span class="o">2026-08-22  hozaifa    Day 1: benchmark, ruler, and the..
+2026-08-23  IBM Bob    Iteration 0: baseline anomaly de..
+2026-08-24  IBM Bob    Iteration 6: DETECTION_THRESHOLD..</span></pre>
+  <p class="cap">The human committed the grading script first. IBM Bob authored the engine code after it.</p>
+
+  <h3>Closing shot: author verification</h3>
+  <pre><span class="c">$</span> git log --format='%an' -- 'engine/*.py' | sort -u
+
+<span class="o">IBM Bob</span></pre>
+
+  <h3>Closing shot: full benchmark scoring</h3>
+  <pre><span class="c">$</span> .venv/Scripts/python.exe tools/score.py
+
+<span class="o">     dev  channels= 56  tp= 38 fp=  17 fn= 32  P=0.691 R=0.543 F1=0.608
+ holdout  channels= 26  tp= 19 fp=   7 fn= 16  P=0.731 R=0.543 F1=0.623
+GATE METRIC (holdout F1): 0.622951</span></pre>
+  <p class="cap">Takes roughly 4 to 5 seconds. Wait for the gate metric to print before you say the number.</p>
+</section>
+
+<!-- =============== WORKFLOW =============== -->
+<section>
+  <h2>Recording workflow</h2>
+  <p class="sub">How to get a clean single take.</p>
+
+  <ol class="steps">
+    <li><span><b>Read through the script twice with a timer</b>
+      <span class="why">Hold an even pace, around 140 words per minute.</span></span></li>
+    <li><span><b>Perform one full rehearsal take with window switches</b>
+      <span class="why">The Alt-Tab switches and the clicks have to land with the narration.</span></span></li>
+    <li><span><b>Record the full take</b>
+      <span class="why">If something goes wrong in the first 15 seconds, start over. Past a minute, talk through the small stumbles.</span></span></li>
+    <li><span><b>Review the recorded file</b>
+      <span class="why">Check the audio levels, the terminal font size, and that the runtime is under 3:00.</span></span></li>
+  </ol>
+</section>
+
+<!-- =============== SUBMISSION =============== -->
+<section>
+  <h2>Upload and submit</h2>
+  <p class="sub">Deadline: August 31, 2026 at 11:59 PM ET (September 1, 09:59 AM Asia/Dhaka).</p>
+
+  <ol class="steps">
+    <li><span><b>Upload video to YouTube as Unlisted (or Loom)</b>
+      <span class="why">Title: "Groundtrack: IBM Bob writes a spacecraft fault detector it cannot grade". Add repo and console links in the description.</span></span></li>
+    <li><span><b>Open the link in an incognito window to confirm playback</b></span></li>
+    <li><span><b>Open the submission portal</b>
+      <span class="why"><a href="https://aibuilderschallenge-bobhub.bemyapp.com/#/event">aibuilderschallenge-bobhub.bemyapp.com</a></span></span></li>
+    <li><span><b>Paste GitHub repository URL</b>
+      <span class="why"><a href="https://github.com/hozaifa1/groundtrack">github.com/hozaifa1/groundtrack</a></span></span></li>
+    <li><span><b>Paste live prototype URL</b>
+      <span class="why"><a href="https://groundtrack-console.vercel.app">groundtrack-console.vercel.app</a></span></span></li>
+    <li><span><b>Paste project video URL and submit form</b></span></li>
+  </ol>
+
+  <h3>Project summary for submission form</h3>
+  <pre>IBM Bob wrote 100% of a spacecraft telemetry fault detector. A grading
+script committed a day before the first line of engine code, and which
+Bob could never read, decided whether each of its revisions survived.
+
+On 26 NASA telemetry recordings Bob never saw, the benchmark score went
+from 0.266 to 0.623 and false alarms fell from 128 to 7. Eight rounds
+ran; the grader kept one and reverted the rest automatically, including
+the round that scored highest on the data Bob could see.
+
+IBM Granite runs locally and wrote an operator brief for all 78
+detections, every number audited back to the source telemetry.
+
+Live console: https://groundtrack-console.vercel.app
+Repo:         https://github.com/hozaifa1/groundtrack</pre>
+</section>
+
+<!-- =============== QA =============== -->
+<section>
+  <h2>Judge Q&A</h2>
+  <p class="sub">Short answers to the technical questions a judge is likely to ask.</p>
+
+  <div class="qa">
+    <p class="q">Did IBM Bob find the winning parameters, or did you?</p>
+    <p class="a">
+      An offline search on the development split found the two constants. Bob authored the code and the
+      reasoning, the search supplied the numbers, and the held-out grader judged the result. That split
+      is recorded in the README, in <code>docs/parameter-search.md</code>, and in Bob's own provenance
+      comments inside <code>engine/detect.py</code>. The claim on the table is that Bob authored the engine
+      code, and it has never been that the agent picked the parameters on its own.
+    </p>
+  </div>
+
+  <div class="qa">
+    <p class="q">Is a held-out split not standard practice in machine learning?</p>
+    <p class="a">
+      Data splitting is standard in model training. Here the split governs an autonomous coding agent's
+      revisions: Bob generates the code changes and can reach neither the evaluation metric nor the test set.
+      Across 432 parameter configurations, the development and held-out scores showed zero correlation, so
+      tuning against the data the agent can see buys nothing on the data it cannot.
+    </p>
+  </div>
+
+  <div class="qa">
+    <p class="q">Recall decreased from 25 to 19. Why is this preferable?</p>
+    <p class="a">
+      On the held-out recordings the engine finds 19 of 35 faults, and false alarms dropped from 128 to 7.
+      For a small team triaging alerts by hand, that takes 121 items out of the queue. The parameters sit as
+      two constants in <code>engine/detect.py</code>, so an operator who needs the recall back can move them
+      with the included search scripts.
+    </p>
+  </div>
+
+  <div class="qa">
+    <p class="q">How is it verified that code was not edited manually after Bob's runs?</p>
+    <p class="a">
+      <code>git log --format='%an' -- 'engine/*.py'</code> returns only IBM Bob.
+      <code>git diff 9cc792e -- 'engine/*.py'</code> comes back empty, so nothing has changed since Bob's
+      final commit. The whole repository was checked again from a fresh clone.
+    </p>
+  </div>
+</section>
+
+<footer>
+  Groundtrack video shoot guide. Checked against repository commit 9cc792e and the live deployment on 31 August 2026.
+</footer>
+
+</div>
+
+</body>
+</html>

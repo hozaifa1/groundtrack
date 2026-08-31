@@ -13,13 +13,12 @@ This constraint makes the project's central claim verifiable:
 git log --format='%an' -- 'engine/*.py' | sort -u    # -> IBM Bob, and nothing else
 ```
 
-If that command lists only Bob, removing Bob removes the engine. Bootstrapping a
-manual baseline compromises that claim. Bob builds everything from scratch.
+If that command lists only Bob, removing Bob removes the engine. Hand-writing a baseline
+to bootstrap from would break that claim, so Bob builds everything from scratch.
 
-This file (`engine/README.md`) is human-written documentation and appears under `git log -- engine/`.
-Every Python file in this directory is authored entirely by Bob. The verification command
-filters specifically to `engine/*.py` to reflect this. We wrote the explanatory prose,
-and Bob wrote the code.
+This file (`engine/README.md`) is human-written documentation and appears under
+`git log -- engine/`. Every Python file here is Bob's, which is why the verification
+command filters to `engine/*.py`. We wrote the explanatory prose, and Bob wrote the code.
 
 ## The interface Bob implements
 
@@ -47,10 +46,11 @@ def match(df, window: tuple[int, int]) -> dict:
 Defined in `.bob/skills/anomaly-forge-engineer/SKILL.md`:
 
 - May edit only `engine/detect.py` and `engine/runbook.py`
-- May never edit `tools/score.py` (the evaluation ruler stays outside the agent's reach)
+- May never edit `tools/score.py`, the evaluation ruler, which stays outside the agent's reach
 - May never read `data/telemanom/labeled_anomalies.csv`. Detection runs on telemetry
   alone, and only the scorer evaluates ground truth
 - No per-channel hardcoding, no added dependencies, and deterministic output
 
 The held-out split (26 of 82 channels, selected by hashing channel identifiers) gates
-whether an iteration is kept. Improvements must generalize across unseen telemetry channels.
+whether an iteration is kept, so an improvement has to hold up on telemetry the engine
+has never been scored against.

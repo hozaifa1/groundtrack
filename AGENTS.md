@@ -1,4 +1,4 @@
-# AGENTS.md — Groundtrack
+# AGENTS.md: Groundtrack
 
 Project context for IBM Bob. Read this before touching anything.
 
@@ -17,7 +17,7 @@ Exploration with AI*. Deadline **31 August 2026, 11:59pm ET**.
 
 `tools/score.py` is the ruler. It decides whether your work is kept. Editing the ruler
 to raise your own score is the single unforgivable failure mode in this repo, and a
-`git diff` makes it obvious. If the metric seems wrong, say so in your report — do not
+`git diff` makes it obvious. If the metric seems wrong, say so in your report. Do not
 change it.
 
 ## Ownership map
@@ -47,7 +47,7 @@ Dependencies live in the project virtualenv, **not** in the system Python. The b
 ```
 
 A full scoring pass reads all 81 telemetry files and takes about 5-6 seconds. Run it
-once, read the result, and act on it — do not re-run it speculatively.
+once, read the result, and act on it. Do not re-run it speculatively.
 
 ## Constraints
 
@@ -59,8 +59,8 @@ once, read the result, and act on it — do not re-run it speculatively.
 - **Deterministic**: no unseeded randomness. Same input, same output, or the
   keep/discard gate is meaningless.
 - **CPU only**: no GPU on this machine, no Docker, no paid services.
-- **Small edits**: one targeted change per iteration, explained. A large rewrite that
-  scores better is worth less than a small change the next iteration can build on.
+- **Small edits**: one targeted change per iteration, explained. A small change the next
+  iteration can build on beats a large rewrite that happens to score better.
 
 ## Style
 
@@ -71,10 +71,9 @@ once, read the result, and act on it — do not re-run it speculatively.
 
 ## Honesty
 
-Report results accurately, including regressions. A logged failed experiment is a
-useful result. A misreported one poisons the ledger and the project's central claim
-along with it. Never fabricate a number, and never claim an improvement the scorer did
-not produce.
+Report results accurately, including regressions. A logged failed experiment is a useful
+result. A misreported one poisons the ledger and the project's central claim along with
+it. Never fabricate a number, and never claim an improvement the scorer did not produce.
 
 ## Security
 
